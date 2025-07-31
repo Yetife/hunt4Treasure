@@ -24,6 +24,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-web-browser"
+    ],
+    "extra": {
+      "apiUrl": "process.env.EXPO_PUBLIC_API_BASE_URL",
     }
   }
 }
