@@ -13,12 +13,15 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {getDemoQuestion, loginUser} from "@/services/authService";
+import {useAuthStore} from "@/stores/authStore";
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Landing'>;
 
 const LandingScreen = ({ navigation }: Props) => {
     const [userDetails, setUserDetails] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [quizData, setQuizData] = useState(null);
 
     // Fetch user details from AsyncStorage
     useEffect(() => {
@@ -37,7 +40,21 @@ const LandingScreen = ({ navigation }: Props) => {
             }
         };
 
+        const fetchQuestion = async () => {
+            try {
+                const result = await getDemoQuestion();
+                console.log(result.data, "dataaaaa")
+                setQuizData(result.data);
+            } catch {
+                alert('Login failed. Try again.');
+                setLoading(false)
+            }finally {
+                setLoading(false)
+            }
+        };
+
         getUserDetails();
+        fetchQuestion()
     }, []);
 
     // Function to get user's first name or fallback
@@ -65,67 +82,6 @@ const LandingScreen = ({ navigation }: Props) => {
             userDetails.balance ||
             '0';
     };
-    const categories = [
-        {
-            id: 1,
-            title: 'Get Smart with Productivity Quiz...',
-            subtitle: 'Franklin smith',
-            color: '#8B7CF6',
-            icon: '🧠',
-        },
-        {
-            id: 2,
-            title: 'Great Ideas Come from brilliant man',
-            subtitle: 'Emmanuel',
-            color: '#F59E0B',
-            icon: '💡',
-        },
-        {
-            id: 3,
-            title: 'Science & Discovery',
-            subtitle: 'Dr. Sarah',
-            color: '#10B981',
-            icon: '🔬',
-        },
-        {
-            id: 4,
-            title: 'History & Culture',
-            subtitle: 'Prof. Johnson',
-            color: '#EF4444',
-            icon: '🏛️',
-        },
-        {
-            id: 5,
-            title: 'Sports & Fitness',
-            subtitle: 'Coach Mike',
-            color: '#3B82F6',
-            icon: '⚽',
-        },
-        {
-            id: 6,
-            title: 'Art & Creativity',
-            subtitle: 'Artist Luna',
-            color: '#EC4899',
-            icon: '🎨',
-        },
-        {
-            id: 7,
-            title: 'Technology & Future',
-            subtitle: 'Tech Guru',
-            color: '#6366F1',
-            icon: '🚀',
-        },
-        {
-            id: 8,
-            title: 'Music & Entertainment',
-            subtitle: 'DJ Alex',
-            color: '#F59E0B',
-            icon: '🎵',
-        },
-    ];
-
-    // Only show first 3 categories on home screen
-    const displayCategories = categories.slice(0, 3);
 
     const handleSeeAllCategories = () => {
         // Navigate to categories screen
@@ -136,6 +92,15 @@ const LandingScreen = ({ navigation }: Props) => {
             alert('Navigate to Categories screen');
         }
     };
+
+    const handleDemo = () => {
+        if (quizData) {
+            // Pass the quiz data to the quiz screen
+            navigation.navigate('Demo', {
+                quizData: quizData,
+            });
+        }
+    }
 
     return (
         // <View style={styles.container}>
@@ -169,8 +134,8 @@ const LandingScreen = ({ navigation }: Props) => {
                 {/* Main Card */}
                 <View style={styles.mainCard}>
                     <Text style={styles.mainCardTitle}>Play quiz together with your friends now!</Text>
-                    <TouchableOpacity style={styles.playButton}>
-                        <Text style={styles.playButtonText}>Play Game</Text>
+                    <TouchableOpacity style={styles.playButton} onPress={handleDemo}>
+                        <Text style={styles.playButtonText}>Play Demo</Text>
                     </TouchableOpacity>
                     <View style={styles.charactersContainer}>
                         <Text style={styles.character}>👥</Text>
@@ -188,34 +153,14 @@ const LandingScreen = ({ navigation }: Props) => {
                 </View>
 
                 <View style={styles.categoriesGrid}>
-                    {displayCategories.map((category) => (
-                        <TouchableOpacity key={category.id} style={[styles.categoryCard, { backgroundColor: category.color }]}>
-                            <Text style={styles.categoryIcon}>{category.icon}</Text>
-                            <Text style={styles.categoryTitle}>{category.title}</Text>
-                            <Text style={styles.categorySubtitle}>{category.subtitle}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
-                {/* Games List */}
-                <View style={styles.gamesList}>
-                    {userDetails?.category.map((game) => (
-                        <TouchableOpacity key={game.id} style={styles.gameCard}>
+                    {userDetails?.category.slice(0, 4).map((category) => (
+                        <TouchableOpacity key={category.id} style={styles.categoryCard}>
                             <View style={styles.gameImageContainer}>
-                                <Image source={{ uri: game.imageUrl}} style={styles.gameImage} />
+                                <Image source={{ uri: category.imageUrl}} style={styles.gameImage} />
                             </View>
-
                             <View style={styles.gameInfo}>
-                                <Text style={styles.gameTitle}>{game.name}</Text>
-                                <Text style={styles.gameTitle}>{game.shortDescription}</Text>
-                                <View style={styles.gameMetaContainer}>
-                                    {/*<View style={styles.authorContainer}>*/}
-                                    {/*    <View style={styles.authorAvatar}>*/}
-                                    {/*        <Text style={styles.authorText}>{game.author.charAt(0)}</Text>*/}
-                                    {/*    </View>*/}
-                                    {/*    <Text style={styles.authorName}>{game.author}</Text>*/}
-                                    {/*</View>*/}
-                                </View>
+                                <Text style={styles.categoryTitle}>{category.name}</Text>
+                                <Text style={styles.categorySubtitle}>{category.shortDescription}</Text>
                             </View>
                         </TouchableOpacity>
                     ))}
@@ -332,6 +277,37 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 16,
     },
+    cardPlayButton: {
+        backgroundColor: '#8B7CF6',
+        paddingHorizontal: 30,
+        paddingVertical: 5,
+        borderRadius: 25,
+        alignSelf: 'flex-start',
+    },
+    cardPlayButtonText: {
+        color: 'white',
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    gameImageContainer: {
+        margin: 0,
+    },
+    gameImage: {
+        height: 114,
+        borderTopLeftRadius: 13,
+        borderTopRightRadius: 13,
+    },
+    gameIconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    gameInfo: {
+        flex: 1,
+        margin: 10
+    },
     charactersContainer: {
         position: 'absolute',
         right: 20,
@@ -356,7 +332,7 @@ const styles = StyleSheet.create({
         color: '#1F2937',
     },
     seeAll: {
-        fontSize: 14,
+        fontSize: 16,
         color: '#8B7CF6',
         fontWeight: '500',
     },
@@ -370,9 +346,18 @@ const styles = StyleSheet.create({
     },
     categoryCard: {
         width: '48%', // This ensures 2 items per row with gap
-        padding: 16,
-        borderRadius: 16,
+        // padding: 16,
+        borderRadius: 13,
         minHeight: 120,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
     },
     categoryIcon: {
         fontSize: 24,
@@ -381,74 +366,13 @@ const styles = StyleSheet.create({
     categoryTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: 'white',
+        color: '#000000',
         marginBottom: 4,
+        marginTop: 4,
     },
     categorySubtitle: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    gamesList: {
-        paddingHorizontal: 20,
-    },
-    gameCard: {
-        flexDirection: 'row',
-        backgroundColor: 'white',
-        padding: 16,
-        borderRadius: 16,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    gameImageContainer: {
-        marginRight: 16,
-    },
-    gameImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 12,
-    },
-    gameIconContainer: {
-        width: 60,
-        height: 60,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    gameIcon: {
-        fontSize: 24,
-    },
-    gameInfo: {
-        flex: 1,
-    },
-    gameTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1F2937',
-        marginBottom: 8,
-    },
-    gameMetaContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    gameMetaLeft: {
-        flex: 1,
-    },
-    gameTime: {
-        fontSize: 12,
-        color: '#6B7280',
-        marginBottom: 2,
-    },
-    gameRating: {
-        fontSize: 12,
-        color: '#6B7280',
+        color: '#000000',
     },
     authorContainer: {
         flexDirection: 'row',

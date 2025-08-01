@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     View,
     Text,
@@ -12,68 +12,33 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "@/navigation/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Categories'>;
 
 export default function CategoriesScreen({ navigation }: Props){
-    const categories = [
-        {
-            id: 1,
-            title: 'Get Smart with Productivity Quiz...',
-            subtitle: 'Franklin smith',
-            color: '#8B7CF6',
-            icon: '🧠',
-        },
-        {
-            id: 2,
-            title: 'Great Ideas Come from brilliant man',
-            subtitle: 'Emmanuel',
-            color: '#F59E0B',
-            icon: '💡',
-        },
-        {
-            id: 3,
-            title: 'Science & Discovery',
-            subtitle: 'Dr. Sarah',
-            color: '#10B981',
-            icon: '🔬',
-        },
-        {
-            id: 4,
-            title: 'History & Culture',
-            subtitle: 'Prof. Johnson',
-            color: '#EF4444',
-            icon: '🏛️',
-        },
-        {
-            id: 5,
-            title: 'Sports & Fitness',
-            subtitle: 'Coach Mike',
-            color: '#3B82F6',
-            icon: '⚽',
-        },
-        {
-            id: 6,
-            title: 'Art & Creativity',
-            subtitle: 'Artist Luna',
-            color: '#EC4899',
-            icon: '🎨',
-        },
-        {
-            id: 7,
-            title: 'Technology & Future',
-            subtitle: 'Tech Guru',
-            color: '#6366F1',
-            icon: '🚀',
-        },
-        {
-            id: 8,
-            title: 'Music & Entertainment',
-            subtitle: 'DJ Alex',
-            color: '#F59E0B',
-            icon: '🎵',
-        },
-    ];
+    const [userDetails, setUserDetails] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch user details from AsyncStorage
+    useEffect(() => {
+        const getUserDetails = async () => {
+            try {
+                const userDetailsString = await AsyncStorage.getItem('userDetails');
+                if (userDetailsString) {
+                    const userData = JSON.parse(userDetailsString);
+                    setUserDetails(userData);
+                }
+                console.log(userDetailsString)
+            } catch (error) {
+                console.error('Error retrieving user details:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        getUserDetails();
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -94,24 +59,20 @@ export default function CategoriesScreen({ navigation }: Props){
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.categoriesContent}>
-                <View style={styles.allCategoriesGrid}>
-                    {categories.map((category) => (
-                        <TouchableOpacity
-                            key={category.id}
-                            style={[styles.fullCategoryCard, { backgroundColor: category.color }]}
-                        >
-                            <Text style={styles.categoryIcon}>{category.icon}</Text>
-                            <Text style={styles.fullCategoryTitle}>{category.title}</Text>
-                            <View style={styles.categoryMeta}>
-                                <Text style={styles.categoryTime}>2 month ago • 5.4k</Text>
-                                <View style={styles.categoryAuthor}>
-                                    <View style={styles.categoryAuthorAvatar}>
-                                        <Text style={styles.categoryAuthorText}>
-                                            {category.subtitle.charAt(0)}
-                                        </Text>
-                                    </View>
-                                    <Text style={styles.categoryAuthorName}>{category.subtitle}</Text>
-                                </View>
+                {/* Games List */}
+                <View style={styles.gamesList}>
+                    {userDetails?.category.map((game) => (
+                        <TouchableOpacity key={game.id} style={styles.gameCard}>
+                            <View style={styles.gameImageContainer}>
+                                <Image source={{ uri: game.imageUrl}} style={styles.gameImage} />
+                            </View>
+
+                            <View style={styles.gameInfo}>
+                                <Text style={styles.gameTitle}>{game.name}</Text>
+                                <Text style={styles.gameTitle}>{game.shortDescription}</Text>
+                                <TouchableOpacity style={styles.cardPlayButton}>
+                                    <Text style={styles.cardPlayButtonText}>Play</Text>
+                                </TouchableOpacity>
                             </View>
                         </TouchableOpacity>
                     ))}
@@ -152,58 +113,90 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    cardPlayButton: {
+        backgroundColor: '#8B7CF6',
+        paddingHorizontal: 30,
+        paddingVertical: 5,
+        borderRadius: 25,
+        alignSelf: 'flex-start',
+    },
+    cardPlayButtonText: {
+        color: 'white',
+        fontWeight: '600',
+        fontSize: 16,
+    },
     categoriesContent: {
         flex: 1,
+        marginTop: 20
     },
     allCategoriesGrid: {
         padding: 20,
         gap: 16,
     },
-    fullCategoryCard: {
-        padding: 20,
-        borderRadius: 16,
-        marginBottom: 16,
+    gamesList: {
+        paddingHorizontal: 20,
     },
-    fullCategoryTitle: {
+    gameCard: {
+        flexDirection: 'row',
+        borderWidth: 1,
+        borderColor: '#9F9F9F',
+        // padding: 16,
+        borderRadius: 16,
+        marginBottom: 12,
+        // shadowColor: '#000',
+        // shadowOffset: {
+        //     width: 0,
+        //     height: 2,
+        // },
+        // shadowOpacity: 0.05,
+        // shadowRadius: 8,
+        // elevation: 2,
+    },
+    gameImageContainer: {
+        marginRight: 16,
+    },
+    gameImage: {
+        width: 160,
+        height: 129,
+        borderTopLeftRadius: 16,
+        borderBottomLeftRadius: 16,
+    },
+    gameIconContainer: {
+        width: 60,
+        height: 60,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    gameIcon: {
+        fontSize: 24,
+    },
+    gameInfo: {
+        flex: 1,
+        marginTop: 10
+    },
+    gameTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: 'white',
-        marginBottom: 12,
-        marginTop: 8,
+        color: '#1F2937',
+        marginBottom: 8,
+
     },
-    categoryMeta: {
+    gameMetaContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    categoryTime: {
+    gameMetaLeft: {
+        flex: 1,
+    },
+    gameTime: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: '#6B7280',
+        marginBottom: 2,
     },
-    categoryAuthor: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    categoryAuthorAvatar: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 6,
-    },
-    categoryAuthorText: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: 'white',
-    },
-    categoryAuthorName: {
+    gameRating: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    categoryIcon: {
-        fontSize: 24,
-        marginBottom: 8,
+        color: '#6B7280',
     },
 })

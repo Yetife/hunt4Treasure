@@ -5,4 +5,7 @@ export type RootStackParamList = {
     Landing: undefined;
     Game: undefined;
     Categories: undefined;
+    Demo: {
+        quizData: any;
+    };
 };

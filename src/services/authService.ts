@@ -9,6 +9,10 @@ export const registerUser = async (data: any) => {
     const response = await api.post('Auth/Internal', data);
     return response.data;
 };
+export const getDemoQuestion = async () => {
+    const response = await api.get('Question/GetSampleQuestions');
+    return response.data;
+};
 //
 // export const loginUser = async (email: string, password: string) => {
 //     if (email === 'demo@example.com' && password === 'password') {
