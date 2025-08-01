@@ -49,7 +49,7 @@ export default function AppNavigator() {
                 <Stack.Screen name={"Categories"} component={CategoriesScreen} options={{ headerShown: false }}/>
                 <Stack.Screen name={"Game"} component={GameScreen} options={{ headerShown: false }}/>
                 <Stack.Screen name={"Demo"} component={DemoGameScreen} options={{ headerShown: false }}/>
-            </Stack.Navigator>
+            </Stack.Navigator>rt55`
         </NavigationContainer>
     );
 }

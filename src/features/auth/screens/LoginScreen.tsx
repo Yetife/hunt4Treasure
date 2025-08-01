@@ -216,8 +216,8 @@ export default function LoginScreen({ navigation }: Props) {
 
                 <Text style={styles.orText}>or register with</Text>
                 <View style={styles.socialRow}>
-                    <TouchableOpacity style={styles.social}><Text>📘</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.social}><Text>🟦</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.social}><Image source={require('@/assets/googleIcon.png')}  resizeMode="contain" /></TouchableOpacity>
+                    <TouchableOpacity style={styles.social}><Text><Image source={require('@/assets/appleIcon.png')}  resizeMode="contain" /></Text></TouchableOpacity>
                     <TouchableOpacity style={styles.social}><Text></Text></TouchableOpacity>
                 </View>
 
