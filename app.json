@@ -2,6 +2,7 @@
   "expo": {
     "name": "hunt4treasure",
     "slug": "hunt4treasure",
+    "scheme": "hunt4treasure",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

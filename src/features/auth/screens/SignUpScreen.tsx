@@ -115,7 +115,7 @@ export default function SignUpScreen({ navigation }: Props) {
             console.log('result', result);
             await useAuthStore.getState().login(result.data, result.data.token);
             await AsyncStorage.setItem("userDetails", JSON.stringify(result.data));
-            navigation.navigate('Game');
+            navigation.navigate('Landing');
         } catch (err) {
             console.error(err);
             alert('Sign-up failed. Try again.');

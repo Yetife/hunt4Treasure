@@ -9,7 +9,6 @@ import LandingScreen from '@/features/landing/LandingScreen';
 import { useAuthStore } from '@/stores/authStore';
 import { hasSeenOnboarding } from '@/utils/onboardingStorage';
 import {RootStackParamList} from "@/navigation/types";
-import GameScreen from "@/features/gameplay/GameScreen";
 import CategoriesScreen from "@/features/landing/CategoriesScreen";
 import DemoGameScreen from "@/features/gameplay/DemoGameScreen";
 
@@ -47,7 +46,6 @@ export default function AppNavigator() {
                 <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }}/>
                 <Stack.Screen name="Landing" component={LandingScreen} options={{ headerShown: false }}/>
                 <Stack.Screen name={"Categories"} component={CategoriesScreen} options={{ headerShown: false }}/>
-                <Stack.Screen name={"Game"} component={GameScreen} options={{ headerShown: false }}/>
                 <Stack.Screen name={"Demo"} component={DemoGameScreen} options={{ headerShown: false }}/>
             </Stack.Navigator>
         </NavigationContainer>

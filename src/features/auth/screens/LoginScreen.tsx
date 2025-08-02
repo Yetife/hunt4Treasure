@@ -12,6 +12,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import Checkbox from 'expo-checkbox';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {useGoogleAuth} from "@/utils/googleAuth";
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -87,6 +88,7 @@ export default function LoginScreen({ navigation }: Props) {
     const [showPassword, setShowPassword] = useState(false);
 
     const [loader, setLoader] = useState(false);
+    const { promptAsync } = useGoogleAuth();
 
     const onSubmit = async (data: any) => {
         setLoader(true)
@@ -96,7 +98,7 @@ export default function LoginScreen({ navigation }: Props) {
             console.log(result.data, "dataaaaa")
             await useAuthStore.getState().login(result.data, result.data.token);
             await AsyncStorage.setItem("userDetails", JSON.stringify(result.data));
-            navigation.navigate('Game');
+            navigation.navigate('Landing');
         } catch {
             alert('Login failed. Try again.');
             setLoader(false)
@@ -164,7 +166,7 @@ export default function LoginScreen({ navigation }: Props) {
                             render={({ field: { onChange, onBlur, value } }) => (
                                 <TextInput
                                     style={[
-                                        styles.passwordInput,
+                                        styles.input,
                                         errors.password && styles.inputError,
                                     ]}
                                     onBlur={onBlur}
@@ -216,9 +218,9 @@ export default function LoginScreen({ navigation }: Props) {
 
                 <Text style={styles.orText}>or register with</Text>
                 <View style={styles.socialRow}>
-                    <TouchableOpacity style={styles.social}><Image source={require('@/assets/googleIcon.png')}  resizeMode="contain" /></TouchableOpacity>
+                    <TouchableOpacity onPress={() => promptAsync()} style={styles.social}><Image source={require('@/assets/googleIcon.png')}  resizeMode="contain" /></TouchableOpacity>
                     <TouchableOpacity style={styles.social}><Text><Image source={require('@/assets/appleIcon.png')}  resizeMode="contain" /></Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.social}><Text></Text></TouchableOpacity>
+                    {/*<TouchableOpacity style={styles.social}><Text></Text></TouchableOpacity>*/}
                 </View>
 
                 <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>

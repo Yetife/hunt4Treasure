@@ -5,6 +5,11 @@ export const loginUser = async (email: string, password: string) => {
     return response.data; // should return token, user info
 };
 
+export const googleLogin = async (accessToken: string) => {
+    const response = await api.post('Auth/google', { accessToken});
+    return response.data; // should return token, user info
+};
+
 export const registerUser = async (data: any) => {
     const response = await api.post('Auth/Internal', data);
     return response.data;

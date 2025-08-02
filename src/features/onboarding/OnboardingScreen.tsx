@@ -27,7 +27,7 @@ const OnboardingScreen = () => {
             loop={false}
             showsPagination
             dotColor="#ccc"
-            activeDotColor="#135D54"
+            activeDotColor="#1C36E5"
             showsButtons={false}
         >
             {onboardingSlides.map((item, index) => (

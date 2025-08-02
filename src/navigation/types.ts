@@ -3,7 +3,6 @@ export type RootStackParamList = {
     Login: undefined;
     SignUp: undefined;
     Landing: undefined;
-    Game: undefined;
     Categories: undefined;
     Demo: {
         quizData: any;
