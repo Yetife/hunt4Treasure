@@ -7,7 +7,10 @@ import {
     StatusBar,
     SafeAreaView,
     Dimensions,
+    Modal,
+    Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "@/navigation/types";
 
@@ -16,72 +19,30 @@ const { width } = Dimensions.get('window');
 type Props = NativeStackScreenProps<RootStackParamList, 'Demo'>;
 
 const DemoGameScreen = ({navigation, route}: Props) => {
-    // Sample data based on your API structure
     const quizData = route.params?.quizData || []
-
-    // const [quizData] = useState({
-    //     status: true,
-    //     data: [
-    //         {
-    //             id: "3dc81c60-8887-4056-b9ba-6e6264853357",
-    //             text: "The \"British Invasion\" was a cultural phenomenon in music where British boy bands became popular in the USA in what decade?",
-    //             options: ["50's", "40's", "30's", "60's"],
-    //             correctAnswer: "60's",
-    //             category: "Entertainment: Music",
-    //             difficulty: "easy"
-    //         },
-    //         {
-    //             id: "768d157a-f205-45b5-b046-1231e620b3d4",
-    //             text: "In the game \"Hearthstone\", what is the best rank possible?",
-    //             options: ["Rank 1 Elite", "Rank 1 Master", "Rank 1 Supreme", "Rank 1 Legend"],
-    //             correctAnswer: "Rank 1 Legend",
-    //             category: "Entertainment: Video Games",
-    //             difficulty: "easy"
-    //         },
-    //         {
-    //             id: "d45c52a2-893d-4bf9-9616-1aa20eb4b3fb",
-    //             text: "When was the iPhone released?",
-    //             options: ["2005", "2006", "2004", "2007"],
-    //             correctAnswer: "2007",
-    //             category: "Science: Gadgets",
-    //             difficulty: "easy"
-    //         },
-    //         {
-    //             id: "a810ad00-62b4-43dc-8723-a86b9359ba75",
-    //             text: "In the show \"Futurama\" what is Fry's full name?",
-    //             options: ["Fry J. Philip", "Fry Rodríguez", "Fry Philip", "Philip J. Fry"],
-    //             correctAnswer: "Philip J. Fry",
-    //             category: "Entertainment: Television",
-    //             difficulty: "easy"
-    //         },
-    //         {
-    //             id: "ec95e49d-5c08-4be6-9b17-b86656ef58f0",
-    //             text: "What is the capital of the US State of New York?",
-    //             options: ["Buffalo", "New York", "Rochester", "Albany"],
-    //             correctAnswer: "Albany",
-    //             category: "Geography",
-    //             difficulty: "easy"
-    //         }
-    //     ],
-    //     message: "Record Found Successfully"
-    // });
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [score, setScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(30);
     const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
+    const [showTimeUpModal, setShowTimeUpModal] = useState(false);
+    const [isQuizCompleted, setIsQuizCompleted] = useState(false);
 
     const currentQuestion = quizData?.[currentQuestionIndex];
     const totalQuestions = quizData?.length;
 
     // Timer countdown
     useEffect(() => {
-        if (timeLeft > 0 && !selectedAnswer) {
+        if (timeLeft > 0 && !selectedAnswer && !showTimeUpModal) {
             const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
             return () => clearTimeout(timer);
+        } else if (timeLeft === 0 && !selectedAnswer && !showTimeUpModal) {
+            // Time's up - show modal
+            setShowTimeUpModal(true);
+            setShowCorrectAnswer(true);
         }
-    }, [timeLeft, selectedAnswer]);
+    }, [timeLeft, selectedAnswer, showTimeUpModal]);
 
     const handleAnswerSelect = (answer) => {
         if (selectedAnswer) return; // Prevent multiple selections
@@ -96,18 +57,68 @@ const DemoGameScreen = ({navigation, route}: Props) => {
 
         // Auto advance to next question after 2 seconds
         setTimeout(() => {
-            if (currentQuestionIndex < totalQuestions - 1) {
-                setCurrentQuestionIndex(currentQuestionIndex + 1);
-                setSelectedAnswer(null);
-                setShowCorrectAnswer(false);
-                setTimeLeft(30);
-            }else {
-                // Quiz completed, navigate back to landing page
-                navigation.navigate('Landing'); // Replace 'LandingPage' with your actual landing page route name
-                // Or use navigation.goBack() if you want to go back to previous screen
-                // navigation.goBack();
-            }
+            moveToNextQuestion();
         }, 2000);
+    };
+
+    const moveToNextQuestion = () => {
+        if (currentQuestionIndex < totalQuestions - 1) {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+            setSelectedAnswer(null);
+            setShowCorrectAnswer(false);
+            setTimeLeft(30);
+            setShowTimeUpModal(false);
+        } else {
+            // Quiz completed
+            setIsQuizCompleted(true);
+            showQuizCompletedAlert();
+        }
+    };
+
+    const handleTimeUpContinue = () => {
+        setShowTimeUpModal(false);
+        // Wait a moment to show the correct answer, then move to next question
+        setTimeout(() => {
+            moveToNextQuestion();
+        }, 1000);
+    };
+
+    const showQuizCompletedAlert = () => {
+        const percentage = Math.round((score / (totalQuestions * 100)) * 100);
+        let message = `You scored ${score} points out of ${totalQuestions * 100} possible points (${percentage}%)`;
+
+        if (percentage >= 80) {
+            message += "\n🎉 Excellent work!";
+        } else if (percentage >= 60) {
+            message += "\n👍 Good job!";
+        } else if (percentage >= 40) {
+            message += "\n💪 Keep practicing!";
+        } else {
+            message += "\n📚 Don't give up, try again!";
+        }
+
+        Alert.alert(
+            'Quiz Completed! 🎊',
+            message,
+            [
+                {
+                    text: 'Play Again',
+                    onPress: () => {
+                        // Reset quiz state
+                        setCurrentQuestionIndex(0);
+                        setSelectedAnswer(null);
+                        setScore(0);
+                        setTimeLeft(30);
+                        setShowCorrectAnswer(false);
+                        setIsQuizCompleted(false);
+                    }
+                },
+                {
+                    text: 'Back to Home',
+                    onPress: () => navigation.navigate('Landing')
+                }
+            ]
+        );
     };
 
     const getOptionStyle = (option) => {
@@ -136,12 +147,31 @@ const DemoGameScreen = ({navigation, route}: Props) => {
         return styles.optionText;
     };
 
+    // Get timer color based on time left
+    const getTimerColor = () => {
+        if (timeLeft <= 5) return '#f44336'; // Red
+        if (timeLeft <= 10) return '#ff9800'; // Orange
+        return '#7c3aed'; // Purple
+    };
+
+    const getTimerBackgroundColor = () => {
+        if (timeLeft <= 5) return '#ffebee'; // Light red
+        if (timeLeft <= 10) return '#fff3e0'; // Light orange
+        return '#f3f0ff'; // Light purple
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
 
             {/* Header */}
             <View style={styles.header}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.goBack()}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
                 <Text style={styles.headerTitle}>Quiz</Text>
                 <View style={styles.scoreContainer}>
                     <View style={styles.diamondIcon}>
@@ -156,23 +186,36 @@ const DemoGameScreen = ({navigation, route}: Props) => {
                 <Text style={styles.progressText}>
                     {currentQuestionIndex + 1}/{totalQuestions}
                 </Text>
+                <View style={styles.progressBar}>
+                    <View
+                        style={[
+                            styles.progressFill,
+                            { width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }
+                        ]}
+                    />
+                </View>
             </View>
 
             {/* Question Card */}
             <View style={styles.questionCard}>
                 <Text style={styles.questionText}>
-                    {currentQuestion.text}
+                    {currentQuestion?.text}
                 </Text>
+                {currentQuestion?.category && (
+                    <Text style={styles.categoryText}>
+                        {currentQuestion.category} • {currentQuestion.difficulty}
+                    </Text>
+                )}
             </View>
 
             {/* Options */}
             <View style={styles.optionsContainer}>
-                {currentQuestion.options.map((option, index) => (
+                {currentQuestion?.options?.map((option, index) => (
                     <TouchableOpacity
                         key={index}
                         style={getOptionStyle(option)}
                         onPress={() => handleAnswerSelect(option)}
-                        disabled={selectedAnswer !== null}
+                        disabled={selectedAnswer !== null || showTimeUpModal}
                     >
                         <Text style={getOptionTextStyle(option)}>
                             {String.fromCharCode(65 + index)}: {option}
@@ -183,10 +226,50 @@ const DemoGameScreen = ({navigation, route}: Props) => {
 
             {/* Timer */}
             <View style={styles.timerContainer}>
-                <View style={styles.timerCircle}>
-                    <Text style={styles.timerText}>{timeLeft}</Text>
+                <View style={[
+                    styles.timerCircle,
+                    {
+                        borderColor: getTimerColor(),
+                        backgroundColor: getTimerBackgroundColor()
+                    }
+                ]}>
+                    <Text style={[styles.timerText, { color: getTimerColor() }]}>
+                        {timeLeft}
+                    </Text>
                 </View>
+                <Text style={styles.timerLabel}>seconds left</Text>
             </View>
+
+            {/* Time Up Modal */}
+            <Modal
+                visible={showTimeUpModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.timeUpModal}>
+                        <View style={styles.timeUpIcon}>
+                            <Ionicons name="time-outline" size={48} color="#f44336" />
+                        </View>
+                        <Text style={styles.timeUpTitle}>Time's Up! ⏰</Text>
+                        <Text style={styles.timeUpMessage}>
+                            You ran out of time for this question.
+                        </Text>
+                        <View style={styles.correctAnswerContainer}>
+                            <Text style={styles.correctAnswerLabel}>The correct answer was:</Text>
+                            <Text style={styles.correctAnswerText}>
+                                {currentQuestion?.correctAnswer}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.continueButton}
+                            onPress={handleTimeUpContinue}
+                        >
+                            <Text style={styles.continueButtonText}>Continue</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -204,10 +287,18 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 20,
     },
+    backButton: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: '#fff',
+    },
     headerTitle: {
         fontSize: 20,
         fontWeight: '600',
         color: '#333',
+        flex: 1,
+        textAlign: 'center',
+        marginRight: 40, // Balance the back button
     },
     scoreContainer: {
         flexDirection: 'row',
@@ -235,6 +326,18 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
         color: '#666',
+        marginBottom: 8,
+    },
+    progressBar: {
+        height: 8,
+        backgroundColor: '#e0e0e0',
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#7c3aed',
+        borderRadius: 4,
     },
     questionCard: {
         backgroundColor: '#fff',
@@ -258,9 +361,15 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
         fontWeight: '400',
+        marginBottom: 12,
+    },
+    categoryText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
     optionsContainer: {
-        marginTop: 40,
         marginBottom: 40,
     },
     option: {
@@ -330,12 +439,10 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     timerCircle: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: '#fff',
-        borderWidth: 3,
-        borderColor: '#7c3aed',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 4,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',
@@ -346,11 +453,97 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 2,
+        marginBottom: 8,
     },
     timerText: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: '600',
-        color: '#7c3aed',
+    },
+    timerLabel: {
+        fontSize: 12,
+        color: '#666',
+        fontWeight: '500',
+    },
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    timeUpModal: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 30,
+        width: width - 40,
+        maxWidth: 350,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    timeUpIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#ffebee',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    timeUpTitle: {
+        fontSize: 24,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    timeUpMessage: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 22,
+    },
+    correctAnswerContainer: {
+        backgroundColor: '#f0f9ff',
+        padding: 16,
+        borderRadius: 12,
+        width: '100%',
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#e0f2fe',
+    },
+    correctAnswerLabel: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    correctAnswerText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#0369a1',
+        textAlign: 'center',
+    },
+    continueButton: {
+        backgroundColor: '#7c3aed',
+        paddingHorizontal: 32,
+        paddingVertical: 12,
+        borderRadius: 25,
+        width: '100%',
+    },
+    continueButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+        textAlign: 'center',
     },
 });
 
