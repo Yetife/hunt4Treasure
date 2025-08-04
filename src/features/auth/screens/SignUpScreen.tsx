@@ -112,9 +112,7 @@ export default function SignUpScreen({ navigation }: Props) {
         setLoader(true)
         try {
             const result = await registerUser(payload);
-            console.log('result', result);
             await useAuthStore.getState().login(result.data, result.data.token);
-            await AsyncStorage.setItem("userDetails", JSON.stringify(result.data));
             navigation.navigate('Landing');
         } catch (err) {
             console.error(err);

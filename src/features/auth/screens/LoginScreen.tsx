@@ -93,11 +93,8 @@ export default function LoginScreen({ navigation }: Props) {
     const onSubmit = async (data: any) => {
         setLoader(true)
         try {
-            console.log(data)
             const result = await loginUser(data.email, data.password);
-            console.log(result.data, "dataaaaa")
             await useAuthStore.getState().login(result.data, result.data.token);
-            await AsyncStorage.setItem("userDetails", JSON.stringify(result.data));
             navigation.navigate('Landing');
         } catch {
             alert('Login failed. Try again.');

@@ -68,7 +68,7 @@ const DemoGameScreen = ({navigation, route}: Props) => {
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [score, setScore] = useState(105);
+    const [score, setScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(30);
     const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
 
@@ -147,7 +147,7 @@ const DemoGameScreen = ({navigation, route}: Props) => {
                     <View style={styles.diamondIcon}>
                         <Text style={styles.diamondText}>💎</Text>
                     </View>
-                    <Text style={styles.scoreText}>${score}</Text>
+                    <Text style={styles.scoreText}>₦{score}</Text>
                 </View>
             </View>
 

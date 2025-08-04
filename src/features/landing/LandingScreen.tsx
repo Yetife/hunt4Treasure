@@ -13,8 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {getDemoQuestion, loginUser} from "@/services/authService";
+import {getDemoQuestion, getUserDetails, loginUser} from "@/services/authService";
 import {useAuthStore} from "@/stores/authStore";
+import TopUpModal from "@/features/landing/TopUpModal";
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Landing'>;
 
@@ -22,17 +23,17 @@ const LandingScreen = ({ navigation }: Props) => {
     const [userDetails, setUserDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [quizData, setQuizData] = useState(null);
+    const [showTopUpModal, setShowTopUpModal] = useState(false);
 
     // Fetch user details from AsyncStorage
     useEffect(() => {
-        const getUserDetails = async () => {
+        const getUserInfo = async () => {
             try {
-                const userDetailsString = await AsyncStorage.getItem('userDetails');
+                const userDetailsString = await AsyncStorage.getItem('userInfo');
                 if (userDetailsString) {
                     const userData = JSON.parse(userDetailsString);
                     setUserDetails(userData);
                 }
-                console.log(userDetailsString)
             } catch (error) {
                 console.error('Error retrieving user details:', error);
             } finally {
@@ -40,10 +41,22 @@ const LandingScreen = ({ navigation }: Props) => {
             }
         };
 
+        const fetchUserDetails = async () => {
+            try {
+                const result = await getUserDetails();
+                console.log(result, "dat")
+                console.log(result.data, "dataaaaailsss")
+                await AsyncStorage.setItem("userDetails", JSON.stringify(result.data));
+            } catch (error) {
+                console.error('Error retrieving user details:', error);
+            } finally {
+                setLoading(false)
+            }
+        }
+
         const fetchQuestion = async () => {
             try {
                 const result = await getDemoQuestion();
-                console.log(result.data, "dataaaaa")
                 setQuizData(result.data);
             } catch {
                 alert('Login failed. Try again.');
@@ -53,8 +66,9 @@ const LandingScreen = ({ navigation }: Props) => {
             }
         };
 
-        getUserDetails();
+        getUserInfo();
         fetchQuestion()
+        fetchUserDetails()
     }, []);
 
     // Function to get user's first name or fallback
@@ -65,13 +79,11 @@ const LandingScreen = ({ navigation }: Props) => {
 
     // Function to get user's avatar or fallback
     const getUserAvatar = () => {
-        if (!userDetails) return 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face';
+        if (!userDetails) return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACUCAMAAAAwLZJQAAAAMFBMVEXk5ueutLfp6+ymrbCqsbTIzM7d3+GyuLvM0NLU19na3d7R1Na4vcDh4+TBxsjX2tsjwEX5AAADuUlEQVR4nO2c2barIAxAJSKDDP7/316snY+1QGyi67If+7QXkAAxtOsajUaj0Wg0Go1Go9E4NcAtkEOYrHNuGsOBdZWNXvZyoZd+sOp4ttA5r6UUTyRbHd3RVGMSE39JvxlutQegBrlmeXM1gdtwAZz+rHlR9fYI8x/ipuXCwG2ZQv3LcN4GlXv6pyzPZKon1ul3WZaLqmI0tX2+qBATn2eJphB6ZPIcyzwTTKKZcfRAeg5NiKWeyZRjPy0I+Cfol2nQNZ5SU+coGMon/mLqiE1DUQZ9QtPupZBzElmHNp5U1Qq9QHs8qVyhM9ISetaF/BXKwJ/qB1SInm7uazalB9KQDSlgPFM4UXnWJ9EFrYg8weBGVFDFPXicJ90ZCisaiTwR29ICVTSNWFGqg0nhnW6Fs4hKovyEzU6iP4uoJLo5/T+iVFNfd1F+HlEi0dOkp9Mk/NNsoac5lKCPeVSfHmrLOXcckWincKJkV5EOcHcmussdeNR1eaCrQJylAHGekg6qSEYW8zOIXZS27Fif88my/RVVXRonS6ILtQU9wlLelcrAJ/98Uxn4kuMLc80nRp6WjfIBZWrYKN5IJVdjSel1lKuxIN3wi7Ip5QemN0qK5D3159pX8meft51orkbkNWjxrc8bKuO4z9NM8g6Yb02Emnd53gEVN9syYziG50ya/3VVKSPxue4LEKIXb7JSaj8caDSvQLAmavlARzMdrcP5TgijGxLGTSFwt4xuAc9wy6wxewU1WmfMcMEYZ6cxHMoXujCZ6LW+pSP5aHXXOg6W/5FDUlR28KLfSKPi8sghupHvlQPMknOYb25LN1vhoxlZ1oHz648ZPsumlTDQZn9QzvdV93rZezMSrQEAG3XWfH8a2GhIVK0um/E11Z8/H4FgNK4sfnf95WoFMKia+KtqCqxfLQBb3Cb+hZ/UTWDabzRvpKP//qIDNoTWVeO+8w95j4Gq2LWtDN3zsIH0e8U/dPuvzhfTvZ46qZ+szhfVXaYf3UGSY4r/gg+GwHMP01+G0YspsuiDbSEgMkX3CFOZOkJPzDrFN2LRmAZiz+rHTsimoSpq6tKoZxa1VHwxmxg0qxpjsP13lfSFk49uFqumMJvSR/yNws4DlkhaKGouLX8+vR8lh1O+FXqhYO5ZPQs6uGgPI3/wuUOK7bhFk5tLOUNpJnd7IrombYjmJn3GJLqQ2RYXuJdobhsX+uECXjQv56P6gvcRzbuTUF49P5AXTeyxJDL/ecX3/GSJvn7L5iFPtNFoVPAPAlkzJqeJNTcAAAAASUVORK5CYII='
 
-        return userDetails.avatar ||
-            userDetails.profilePicture ||
-            userDetails.image ||
-            userDetails.photo ||
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face';
+        return userDetails.profilePicx ||
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACUCAMAAAAwLZJQAAAAMFBMVEXk5ueutLfp6+ymrbCqsbTIzM7d3+GyuLvM0NLU19na3d7R1Na4vcDh4+TBxsjX2tsjwEX5AAADuUlEQVR4nO2c2barIAxAJSKDDP7/316snY+1QGyi67If+7QXkAAxtOsajUaj0Wg0Go1Go9E4NcAtkEOYrHNuGsOBdZWNXvZyoZd+sOp4ttA5r6UUTyRbHd3RVGMSE39JvxlutQegBrlmeXM1gdtwAZz+rHlR9fYI8x/ipuXCwG2ZQv3LcN4GlXv6pyzPZKon1ul3WZaLqmI0tX2+qBATn2eJphB6ZPIcyzwTTKKZcfRAeg5NiKWeyZRjPy0I+Cfol2nQNZ5SU+coGMon/mLqiE1DUQZ9QtPupZBzElmHNp5U1Qq9QHs8qVyhM9ISetaF/BXKwJ/qB1SInm7uazalB9KQDSlgPFM4UXnWJ9EFrYg8weBGVFDFPXicJ90ZCisaiTwR29ICVTSNWFGqg0nhnW6Fs4hKovyEzU6iP4uoJLo5/T+iVFNfd1F+HlEi0dOkp9Mk/NNsoac5lKCPeVSfHmrLOXcckWincKJkV5EOcHcmussdeNR1eaCrQJylAHGekg6qSEYW8zOIXZS27Fif88my/RVVXRonS6ILtQU9wlLelcrAJ/98Uxn4kuMLc80nRp6WjfIBZWrYKN5IJVdjSel1lKuxIN3wi7Ip5QemN0qK5D3159pX8meft51orkbkNWjxrc8bKuO4z9NM8g6Yb02Emnd53gEVN9syYziG50ya/3VVKSPxue4LEKIXb7JSaj8caDSvQLAmavlARzMdrcP5TgijGxLGTSFwt4xuAc9wy6wxewU1WmfMcMEYZ6cxHMoXujCZ6LW+pSP5aHXXOg6W/5FDUlR28KLfSKPi8sghupHvlQPMknOYb25LN1vhoxlZ1oHz648ZPsumlTDQZn9QzvdV93rZezMSrQEAG3XWfH8a2GhIVK0um/E11Z8/H4FgNK4sfnf95WoFMKia+KtqCqxfLQBb3Cb+hZ/UTWDabzRvpKP//qIDNoTWVeO+8w95j4Gq2LWtDN3zsIH0e8U/dPuvzhfTvZ46qZ+szhfVXaYf3UGSY4r/gg+GwHMP01+G0YspsuiDbSEgMkX3CFOZOkJPzDrFN2LRmAZiz+rHTsimoSpq6tKoZxa1VHwxmxg0qxpjsP13lfSFk49uFqumMJvSR/yNws4DlkhaKGouLX8+vR8lh1O+FXqhYO5ZPQs6uGgPI3/wuUOK7bhFk5tLOUNpJnd7IrombYjmJn3GJLqQ2RYXuJdobhsX+uECXjQv56P6gvcRzbuTUF49P5AXTeyxJDL/ecX3/GSJvn7L5iFPtNFoVPAPAlkzJqeJNTcAAAAASUVORK5CYII='
+
     };
 
     // Function to get user's points or fallback
@@ -94,13 +106,35 @@ const LandingScreen = ({ navigation }: Props) => {
     };
 
     const handleDemo = () => {
-        if (quizData) {
+        // if (quizData) {
             // Pass the quiz data to the quiz screen
             navigation.navigate('Demo', {
                 quizData: quizData,
             });
-        }
+        // }
     }
+
+    // Function to handle successful top-up
+    const handleTopUpSuccess = async (newBalance) => {
+        try {
+            // Update userDetails with new balance
+            const updatedUserDetails = {
+                ...userDetails,
+                balance: newBalance.toString(),
+                points: newBalance.toString(), // Update both balance and points
+            };
+
+            // Update state
+            setUserDetails(updatedUserDetails);
+
+            // Update AsyncStorage
+            await AsyncStorage.setItem('userInfo', JSON.stringify(updatedUserDetails));
+
+            console.log('Balance updated successfully:', newBalance);
+        } catch (error) {
+            console.error('Error updating balance:', error);
+        }
+    };
 
     return (
         // <View style={styles.container}>
@@ -113,21 +147,30 @@ const LandingScreen = ({ navigation }: Props) => {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face' }}
-                        style={styles.avatar}
-                    />
+                    <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                        <Image
+                            source={{ uri: getUserAvatar() }}
+                            style={styles.avatar}
+                        />
+                    </TouchableOpacity>
                     <View>
                         <Text style={styles.greeting}>Hi {getUserName()}</Text>
                         <Text style={styles.subGreeting}>ready to play</Text>
                     </View>
                 </View>
                 <View style={styles.headerRight}>
-                    <View style={styles.pointsContainer}>
+                    <TouchableOpacity
+                        style={styles.pointsContainer}
+                        onPress={() => setShowTopUpModal(true)} // Open modal on press
+                    >
                         <Text style={styles.pointsIcon}>💎</Text>
-                        <Text style={styles.points}>{getUserPoints()}</Text>
-                    </View>
+                        <Text style={styles.points}>{parseFloat(getUserPoints()).toLocaleString()}</Text>
+                    </TouchableOpacity>
                 </View>
+            </View>
+
+            <View>
+                <Text style={{fontSize: 20, fontWeight: '600', color: '#1F2937', paddingLeft: 20, paddingTop: 10,}}>Hunt4Treasure🏆</Text>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -146,7 +189,7 @@ const LandingScreen = ({ navigation }: Props) => {
 
                 {/* Categories Section */}
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>categories</Text>
+                    <Text style={styles.sectionTitle}>Categories</Text>
                     <TouchableOpacity onPress={handleSeeAllCategories}>
                         <Text style={styles.seeAll}>see all</Text>
                     </TouchableOpacity>
@@ -177,11 +220,22 @@ const LandingScreen = ({ navigation }: Props) => {
                     <Ionicons name="grid-outline" size={24} color="#9CA3AF" />
                     <Text style={styles.navText}>Games</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity
+                    style={styles.navItem}
+                    onPress={() => navigation.navigate('Profile')}
+                >
                     <Ionicons name="person-outline" size={24} color="#9CA3AF" />
                     <Text style={styles.navText}>Profile</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* Top Up Modal */}
+            <TopUpModal
+                visible={showTopUpModal}
+                onClose={() => setShowTopUpModal(false)}
+                onSuccess={handleTopUpSuccess}
+                currentBalance={getUserPoints()}
+            />
         </SafeAreaView>
     );
 };

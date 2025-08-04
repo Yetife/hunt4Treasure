@@ -14,10 +14,25 @@ export const registerUser = async (data: any) => {
     const response = await api.post('Auth/Internal', data);
     return response.data;
 };
+
+export const editUserProfile = async (data: any) => {
+    const response = await api.post('Profile/UpdateUser', data);
+    return response.data;
+};
+export const topUpBalance = async (data: any) => {
+    const response = await api.post(`Payment/TopUp?Amount=${data}`);
+    return response.data;
+};
 export const getDemoQuestion = async () => {
     const response = await api.get('Question/GetSampleQuestions');
     return response.data;
 };
+export const getUserDetails = async () => {
+    const response = await api.post('Profile/GetDetial');
+    return response.data;
+};
+
+
 //
 // export const loginUser = async (email: string, password: string) => {
 //     if (email === 'demo@example.com' && password === 'password') {

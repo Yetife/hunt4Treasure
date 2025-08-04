@@ -43,6 +43,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     logout: async () => {
         await AsyncStorage.removeItem('userToken');
         await AsyncStorage.removeItem('userInfo');
+        await AsyncStorage.removeItem('userDetails');
         set({ user: null, token: null });
     }
 }));

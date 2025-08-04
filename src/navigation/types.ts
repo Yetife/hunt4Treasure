@@ -4,6 +4,7 @@ export type RootStackParamList = {
     SignUp: undefined;
     Landing: undefined;
     Categories: undefined;
+    Profile: undefined;
     Demo: {
         quizData: any;
     };

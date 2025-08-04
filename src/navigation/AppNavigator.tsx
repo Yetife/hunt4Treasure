@@ -11,6 +11,7 @@ import { hasSeenOnboarding } from '@/utils/onboardingStorage';
 import {RootStackParamList} from "@/navigation/types";
 import CategoriesScreen from "@/features/landing/CategoriesScreen";
 import DemoGameScreen from "@/features/gameplay/DemoGameScreen";
+import ProfileScreen from "@/features/profile/ProfileScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -47,6 +48,7 @@ export default function AppNavigator() {
                 <Stack.Screen name="Landing" component={LandingScreen} options={{ headerShown: false }}/>
                 <Stack.Screen name={"Categories"} component={CategoriesScreen} options={{ headerShown: false }}/>
                 <Stack.Screen name={"Demo"} component={DemoGameScreen} options={{ headerShown: false }}/>
+                <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }}/>
             </Stack.Navigator>
         </NavigationContainer>
     );

@@ -24,7 +24,7 @@ export default function CategoriesScreen({ navigation }: Props){
     useEffect(() => {
         const getUserDetails = async () => {
             try {
-                const userDetailsString = await AsyncStorage.getItem('userDetails');
+                const userDetailsString = await AsyncStorage.getItem('userInfo');
                 if (userDetailsString) {
                     const userData = JSON.parse(userDetailsString);
                     setUserDetails(userData);
@@ -140,24 +140,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         borderWidth: 1,
         borderColor: '#9F9F9F',
-        // padding: 16,
         borderRadius: 16,
         marginBottom: 12,
-        // shadowColor: '#000',
-        // shadowOffset: {
-        //     width: 0,
-        //     height: 2,
-        // },
-        // shadowOpacity: 0.05,
-        // shadowRadius: 8,
-        // elevation: 2,
     },
     gameImageContainer: {
         marginRight: 16,
     },
     gameImage: {
         width: 160,
-        height: 129,
+        height: 140,
         borderTopLeftRadius: 16,
         borderBottomLeftRadius: 16,
     },
