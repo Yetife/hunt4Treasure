@@ -8,4 +8,11 @@ export type RootStackParamList = {
     Demo: {
         quizData: any;
     };
+    MainGame: {
+        quizData: any,
+        stakeAmount: any,
+        initialBalance: any,
+        playerName: any,
+        id: any,
+    };
 };

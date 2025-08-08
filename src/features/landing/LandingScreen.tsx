@@ -121,7 +121,6 @@ const LandingScreen = ({ navigation }: Props) => {
             const updatedUserDetails = {
                 ...userDetails,
                 balance: newBalance.toString(),
-                points: newBalance.toString(), // Update both balance and points
             };
 
             // Update state
@@ -131,6 +130,7 @@ const LandingScreen = ({ navigation }: Props) => {
             await AsyncStorage.setItem('userInfo', JSON.stringify(updatedUserDetails));
 
             console.log('Balance updated successfully:', newBalance);
+            console.log('Balance updated successfully:', userDetails);
         } catch (error) {
             console.error('Error updating balance:', error);
         }
