@@ -38,9 +38,9 @@ const ProfileScreen = ({ navigation }: Props) => {
                     const userData = JSON.parse(userDetailsString);
                     setUserDetails(userData);
                     // Set bank details if they exist
-                    setBankName(userData.bankName || '');
-                    setAccountNumber(userData.accountNumber || '');
-                    setProfileImage(userData.profilePicx || getUserAvatar(userData));
+                    setBankName(userData.withdrawalBank?.bankName || '');
+                    setAccountNumber(userData.withdrawalBank?.accountNumber || '');
+                    setProfileImage(userData.profileImagePath || getUserAvatar(userData));
                 }
             } catch (error) {
                 console.error('Error retrieving user details:', error);
@@ -55,7 +55,7 @@ const ProfileScreen = ({ navigation }: Props) => {
     // Function to get user's avatar or fallback
     const getUserAvatar = (userData = userDetails) => {
         if (!userData) return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACUCAMAAAAwLZJQAAAAMFBMVEXk5ueutLfp6+ymrbCqsbTIzM7d3+GyuLvM0NLU19na3d7R1Na4vcDh4+TBxsjX2tsjwEX5AAADuUlEQVR4nO2c2barIAxAJSKDDP7/316snY+1QGyi67If+7QXkAAxtOsajUaj0Wg0Go1Go9E4NcAtkEOYrHNuGsOBdZWNXvZyoZd+sOp4ttA5r6UUTyRbHd3RVGMSE39JvxlutQegBrlmeXM1gdtwAZz+rHlR9fYI8x/ipuXCwG2ZQv3LcN4GlXv6pyzPZKon1ul3WZaLqmI0tX2+qBATn2eJphB6ZPIcyzwTTKKZcfRAeg5NiKWeyZRjPy0I+Cfol2nQNZ5SU+coGMon/mLqiE1DUQZ9QtPupZBzElmHNp5U1Qq9QHs8qVyhM9ISetaF/BXKwJ/qB1SInm7uazalB9KQDSlgPFM4UXnWJ9EFrYg8weBGVFDFPXicJ90ZCisaiTwR29ICVTSNWFGqg0nhnW6Fs4hKovyEzU6iP4uoJLo5/T+iVFNfd1F+HlEi0dOkp9Mk/NNsoac5lKCPeVSfHmrLOXcckWincKJkV5EOcHcmussdeNR1eaCrQJylAHGekg6qSEYW8zOIXZS27Fif88my/RVVXRonS6ILtQU9wlLelcrAJ/98Uxn4kuMLc80nRp6WjfIBZWrYKN5IJVdjSel1lKuxIN3wi7Ip5QemN0qK5D3159pX8meft51orkbkNWjxrc8bKuO4z9NM8g6Yb02Emnd53gEVN9syYziG50ya/3VVKSPxue4LEKIXb7JSaj8caDSvQLAmavlARzMdrcP5TgijGxLGTSFwt4xuAc9wy6wxewU1WmfMcMEYZ6cxHMoXujCZ6LW+pSP5aHXXOg6W/5FDUlR28KLfSKPi8sghupHvlQPMknOYb25LN1vhoxlZ1oHz648ZPsumlTDQZn9QzvdV93rZezMSrQEAG3XWfH8a2GhIVK0um/E11Z8/H4FgNK4sfnf95WoFMKia+KtqCqxfLQBb3Cb+hZ/UTWDabzRvpKP//qIDNoTWVeO+8w95j4Gq2LWtDN3zsIH0e8U/dPuvzhfTvZ46qZ+szhfVXaYf3UGSY4r/gg+GwHMP01+G0YspsuiDbSEgMkX3CFOZOkJPzDrFN2LRmAZiz+rHTsimoSpq6tKoZxa1VHwxmxg0qxpjsP13lfSFk49uFqumMJvSR/yNws4DlkhaKGouLX8+vR8lh1O+FXqhYO5ZPQs6uGgPI3/wuUOK7bhFk5tLOUNpJnd7IrombYjmJn3GJLqQ2RYXuJdobhsX+uECXjQv56P6gvcRzbuTUF49P5AXTeyxJDL/ecX3/GSJvn7L5iFPtNFoVPAPAlkzJqeJNTcAAAAASUVORK5CYII='
-        return userData.profilePicx ||
+        return userData.profileImagePath ||
             'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACUCAMAAAAwLZJQAAAAMFBMVEXk5ueutLfp6+ymrbCqsbTIzM7d3+GyuLvM0NLU19na3d7R1Na4vcDh4+TBxsjX2tsjwEX5AAADuUlEQVR4nO2c2barIAxAJSKDDP7/316snY+1QGyi67If+7QXkAAxtOsajUaj0Wg0Go1Go9E4NcAtkEOYrHNuGsOBdZWNXvZyoZd+sOp4ttA5r6UUTyRbHd3RVGMSE39JvxlutQegBrlmeXM1gdtwAZz+rHlR9fYI8x/ipuXCwG2ZQv3LcN4GlXv6pyzPZKon1ul3WZaLqmI0tX2+qBATn2eJphB6ZPIcyzwTTKKZcfRAeg5NiKWeyZRjPy0I+Cfol2nQNZ5SU+coGMon/mLqiE1DUQZ9QtPupZBzElmHNp5U1Qq9QHs8qVyhM9ISetaF/BXKwJ/qB1SInm7uazalB9KQDSlgPFM4UXnWJ9EFrYg8weBGVFDFPXicJ90ZCisaiTwR29ICVTSNWFGqg0nhnW6Fs4hKovyEzU6iP4uoJLo5/T+iVFNfd1F+HlEi0dOkp9Mk/NNsoac5lKCPeVSfHmrLOXcckWincKJkV5EOcHcmussdeNR1eaCrQJylAHGekg6qSEYW8zOIXZS27Fif88my/RVVXRonS6ILtQU9wlLelcrAJ/98Uxn4kuMLc80nRp6WjfIBZWrYKN5IJVdjSel1lKuxIN3wi7Ip5QemN0qK5D3159pX8meft51orkbkNWjxrc8bKuO4z9NM8g6Yb02Emnd53gEVN9syYziG50ya/3VVKSPxue4LEKIXb7JSaj8caDSvQLAmavlARzMdrcP5TgijGxLGTSFwt4xuAc9wy6wxewU1WmfMcMEYZ6cxHMoXujCZ6LW+pSP5aHXXOg6W/5FDUlR28KLfSKPi8sghupHvlQPMknOYb25LN1vhoxlZ1oHz648ZPsumlTDQZn9QzvdV93rZezMSrQEAG3XWfH8a2GhIVK0um/E11Z8/H4FgNK4sfnf95WoFMKia+KtqCqxfLQBb3Cb+hZ/UTWDabzRvpKP//qIDNoTWVeO+8w95j4Gq2LWtDN3zsIH0e8U/dPuvzhfTvZ46qZ+szhfVXaYf3UGSY4r/gg+GwHMP01+G0YspsuiDbSEgMkX3CFOZOkJPzDrFN2LRmAZiz+rHTsimoSpq6tKoZxa1VHwxmxg0qxpjsP13lfSFk49uFqumMJvSR/yNws4DlkhaKGouLX8+vR8lh1O+FXqhYO5ZPQs6uGgPI3/wuUOK7bhFk5tLOUNpJnd7IrombYjmJn3GJLqQ2RYXuJdobhsX+uECXjQv56P6gvcRzbuTUF49P5AXTeyxJDL/ecX3/GSJvn7L5iFPtNFoVPAPAlkzJqeJNTcAAAAASUVORK5CYII=';
     };
 
@@ -134,7 +134,7 @@ const ProfileScreen = ({ navigation }: Props) => {
 
                 // Create FormData
                 const formData = createFormData(payload);
-
+console.log('FormData created with fields:', formData);
                 // Log FormData contents for debugging
                 // console.log('FormData created with fields:');
                 // for (let [key, value] of formData._parts) {
@@ -143,7 +143,7 @@ const ProfileScreen = ({ navigation }: Props) => {
 
                 const response = await editUserProfile(formData);
 
-                if (response.success) {
+                if (response.success|| response.status === true) {
                     // Update local storage with new image
                     const updatedUserDetails = {
                         ...userDetails,
@@ -182,20 +182,20 @@ const ProfileScreen = ({ navigation }: Props) => {
                 profilePic: profileImage || getUserAvatar()
             };
 
-            console.log('Saving bank details with FormData...');
+            console.log('Saving bank details with FormData...', payload);
 
             // Create FormData
             const formData = createFormData(payload);
 
             // Log FormData contents for debugging
-            console.log('FormData created with fields:');
+            console.log('FormData created with fields:', formData);
             // for (let [key, value] of formData._parts) {
             //     console.log(key, typeof value === 'object' ? 'File object' : value);
             // }
 
             const response = await editUserProfile(formData);
-
-            if (response.success) {
+console.log('Response from editUserProfile:', response);
+            if (response.success || response.status === true) {
                 // Update local storage with new bank details
                 const updatedUserDetails = {
                     ...userDetails,
@@ -382,8 +382,8 @@ const ProfileScreen = ({ navigation }: Props) => {
                             onPress={() => {
                                 setIsEditing(false);
                                 // Reset to original values
-                                setBankName(userDetails?.bankName || '');
-                                setAccountNumber(userDetails?.accountNumber || '');
+                                setBankName(userDetails?.withdrawalBank?.bankName || '');
+                                setAccountNumber(userDetails?.withdrawalBank?.accountNumber || '');
                             }}
                         >
                             <Text style={styles.cancelButtonText}>Cancel</Text>
