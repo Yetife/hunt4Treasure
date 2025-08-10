@@ -36,7 +36,6 @@ export const getUserDetails = async () => {
     return response.data;
 };
 
-
 //
 // export const loginUser = async (email: string, password: string) => {
 //     if (email === 'demo@example.com' && password === 'password') {

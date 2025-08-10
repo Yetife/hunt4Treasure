@@ -35,6 +35,9 @@ const MainGameScreen = ({navigation, route}: Props) => {
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
     const [isQuizCompleted, setIsQuizCompleted] = useState(false);
     const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);
+    const [gameEnded, setGameEnded] = useState(false);
+    const [showGameEndModal, setShowGameEndModal] = useState(false);
+    const [winnings, setWinnings] = useState(0);
 
     // Lifelines
     const [fiftyFiftyUsed, setFiftyFiftyUsed] = useState(false);
@@ -59,21 +62,30 @@ const MainGameScreen = ({navigation, route}: Props) => {
 
     const currentPrize = calculatePrizeAmount(currentQuestionIndex);
 
+    // Calculate winnings based on game rules
+    const calculateWinnings = (correctAnswers) => {
+        if (correctAnswers < 5) {
+            return 0; // No prize if less than 5 consecutive correct
+        } else if (correctAnswers >= 5 && correctAnswers < 10) {
+            return Math.round(stakeAmount * 0.5); // 50% of stake for 5-9 correct
+        } else {
+            return stakeAmount; // 100% of stake for 10+ correct (loses accumulated winnings)
+        }
+    };
+
     // Timer countdown
     useEffect(() => {
-        if (timeLeft > 0 && !selectedAnswer && !showTimeUpModal) {
+        if (timeLeft > 0 && !selectedAnswer && !showTimeUpModal && !gameEnded) {
             const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
             return () => clearTimeout(timer);
-        } else if (timeLeft === 0 && !selectedAnswer && !showTimeUpModal) {
-            // Time's up - show modal
-            setShowTimeUpModal(true);
-            setShowCorrectAnswer(true);
-            setConsecutiveCorrect(0); // Reset consecutive count
+        } else if (timeLeft === 0 && !selectedAnswer && !showTimeUpModal && !gameEnded) {
+            // Time's up - end game
+            handleGameEnd(false);
         }
-    }, [timeLeft, selectedAnswer, showTimeUpModal]);
+    }, [timeLeft, selectedAnswer, showTimeUpModal, gameEnded]);
 
     const handleAnswerSelect = (answer) => {
-        if (selectedAnswer) return; // Prevent multiple selections
+        if (selectedAnswer || gameEnded) return; // Prevent multiple selections
 
         setSelectedAnswer(answer);
         setShowCorrectAnswer(true);
@@ -81,43 +93,64 @@ const MainGameScreen = ({navigation, route}: Props) => {
         // Check if answer is correct
         if (answer === currentQuestion.correctAnswer) {
             setConsecutiveCorrect(consecutiveCorrect + 1);
-            // Update balance with prize money
+            // Update balance with prize money (this is just for display during game)
             setCurrentBalance(currentBalance + currentPrize);
-        } else {
-            setConsecutiveCorrect(0); // Reset consecutive count
-        }
 
-        // Auto advance to next question after 2 seconds
-        setTimeout(() => {
-            moveToNextQuestion();
-        }, 2000);
+            // Auto advance to next question after 2 seconds
+            setTimeout(() => {
+                moveToNextQuestion();
+            }, 2000);
+        } else {
+            // Wrong answer - end game
+            setTimeout(() => {
+                handleGameEnd(false);
+            }, 2000);
+        }
+    };
+
+    const handleGameEnd = (isCorrect) => {
+        setGameEnded(true);
+        const finalCorrectAnswers = isCorrect ? consecutiveCorrect + 1 : consecutiveCorrect;
+        const finalWinnings = calculateWinnings(finalCorrectAnswers);
+        setWinnings(finalWinnings);
+
+        // Show time up modal first if time ran out
+        if (timeLeft === 0 && !selectedAnswer) {
+            setShowTimeUpModal(true);
+            setShowCorrectAnswer(true);
+            setTimeout(() => {
+                setShowTimeUpModal(false);
+                setShowGameEndModal(true);
+            }, 3000);
+        } else {
+            // Show game end modal after showing correct answer
+            setTimeout(() => {
+                setShowGameEndModal(true);
+            }, 1000);
+        }
     };
 
     const moveToNextQuestion = () => {
-        if (currentQuestionIndex < totalQuestions - 1) {
+        if (currentQuestionIndex < totalQuestions - 1 && !gameEnded) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
             setSelectedAnswer(null);
             setShowCorrectAnswer(false);
             setTimeLeft(30);
             setShowTimeUpModal(false);
             setFilteredOptions(null); // Reset filtered options for new question
-        } else {
-            // Quiz completed
-            setIsQuizCompleted(true);
-            showQuizCompletedAlert();
+        } else if (!gameEnded) {
+            // Quiz completed successfully
+            handleGameEnd(true);
         }
     };
 
     const handleTimeUpContinue = () => {
         setShowTimeUpModal(false);
-        // Wait a moment to show the correct answer, then move to next question
-        setTimeout(() => {
-            moveToNextQuestion();
-        }, 1000);
+        // This will be handled by the game end logic
     };
 
     const handleFiftyFifty = () => {
-        if (fiftyFiftyUsed || !currentQuestion) return;
+        if (fiftyFiftyUsed || !currentQuestion || selectedAnswer !== null || gameEnded) return;
 
         setFiftyFiftyUsed(true);
         const correctAnswer = currentQuestion.correctAnswer;
@@ -132,32 +165,32 @@ const MainGameScreen = ({navigation, route}: Props) => {
     };
 
     const handleSkip = () => {
-        if (skipUsed) return;
+        if (skipUsed || gameEnded) return;
 
         setSkipUsed(true);
-        setConsecutiveCorrect(0); // Reset consecutive count
         moveToNextQuestion();
     };
 
     const handleCashout = () => {
-        if (consecutiveCorrect < 5) {
+        if (consecutiveCorrect < 5 || gameEnded) {
             Alert.alert("Cannot Cashout", "You need to answer at least 5 consecutive questions correctly to cashout.");
             return;
         }
 
-        const cashoutAmount = Math.round(currentBalance * 0.5);
+        const cashoutAmount = Math.round(stakeAmount * 0.5);
 
         Alert.alert(
             'Cashout Confirmation',
-            `You will receive 50% of your current balance: ₦${cashoutAmount}`,
+            `You will receive 50% of your stake amount: ₦${cashoutAmount}`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Cashout',
                     onPress: () => {
                         setCurrentBalance(currentBalance + cashoutAmount);
+                        setGameEnded(true);
                         Alert.alert('Success!', `₦${cashoutAmount} has been added to your balance!`, [
-                            { text: 'OK', onPress: () => navigation.navigate('Landing') }
+                            { text: 'OK', onPress: () => navigation.navigate('MainGame') }
                         ]);
                     }
                 }
@@ -196,33 +229,13 @@ const MainGameScreen = ({navigation, route}: Props) => {
         );
     };
 
-    const showQuizCompletedAlert = () => {
-        const finalBalance = currentBalance;
-        Alert.alert(
-            'Quiz Completed! 🎊',
-            `Final Balance: ₦${finalBalance}\nConsecutive Correct: ${consecutiveCorrect}`,
-            [
-                {
-                    text: 'Play Again',
-                    onPress: () => {
-                        // Reset quiz state
-                        setCurrentQuestionIndex(0);
-                        setSelectedAnswer(null);
-                        setTimeLeft(30);
-                        setShowCorrectAnswer(false);
-                        setIsQuizCompleted(false);
-                        setConsecutiveCorrect(0);
-                        setFiftyFiftyUsed(false);
-                        setSkipUsed(false);
-                        setFilteredOptions(null);
-                    }
-                },
-                {
-                    text: 'Back to Home',
-                    onPress: () => navigation.navigate('Landing')
-                }
-            ]
-        );
+    const handleGameEndContinue = () => {
+        setShowGameEndModal(false);
+        // Add winnings to balance
+        if (winnings > 0) {
+            setCurrentBalance(currentBalance + winnings);
+        }
+        navigation.navigate('Landing');
     };
 
     const getOptionStyle = (option) => {
@@ -296,7 +309,15 @@ const MainGameScreen = ({navigation, route}: Props) => {
                     <Text style={styles.prizeLabel}>Prize for this question:</Text>
                     <Text style={styles.prizeAmount}>₦{currentPrize}</Text>
                     <Text style={styles.consecutiveText}>
-                        Consecutive Correct: {consecutiveCorrect}/5 {consecutiveCorrect >= 5 && "✅ Eligible for Cashout"}
+                        Consecutive Correct: {consecutiveCorrect}
+                    </Text>
+                    <Text style={styles.gameRulesText}>
+                        {consecutiveCorrect < 5
+                            ? "Need 5 consecutive correct answers to win prizes"
+                            : consecutiveCorrect < 10
+                                ? "✅ Eligible for 50% stake if you fail now"
+                                : "🎯 Eligible for 100% stake if you fail now"
+                        }
                     </Text>
                 </View>
 
@@ -318,31 +339,31 @@ const MainGameScreen = ({navigation, route}: Props) => {
                 {/* Lifelines */}
                 <View style={styles.lifelinesContainer}>
                     <TouchableOpacity
-                        style={[styles.lifelineButton, fiftyFiftyUsed && styles.lifelineDisabled]}
+                        style={[styles.lifelineButton, (fiftyFiftyUsed || gameEnded) && styles.lifelineDisabled]}
                         onPress={handleFiftyFifty}
-                        disabled={fiftyFiftyUsed || selectedAnswer !== null}
+                        disabled={fiftyFiftyUsed || selectedAnswer !== null || gameEnded}
                     >
-                        <Text style={[styles.lifelineText, fiftyFiftyUsed && styles.lifelineDisabledText]}>
+                        <Text style={[styles.lifelineText, (fiftyFiftyUsed || gameEnded) && styles.lifelineDisabledText]}>
                             50/50 {fiftyFiftyUsed && '✗'}
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.lifelineButton, skipUsed && styles.lifelineDisabled]}
+                        style={[styles.lifelineButton, (skipUsed || gameEnded) && styles.lifelineDisabled]}
                         onPress={handleSkip}
-                        disabled={skipUsed || selectedAnswer !== null}
+                        disabled={skipUsed || selectedAnswer !== null || gameEnded}
                     >
-                        <Text style={[styles.lifelineText, skipUsed && styles.lifelineDisabledText]}>
+                        <Text style={[styles.lifelineText, (skipUsed || gameEnded) && styles.lifelineDisabledText]}>
                             Skip {skipUsed && '✗'}
                         </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.cashoutButton, consecutiveCorrect < 5 && styles.cashoutDisabled]}
+                        style={[styles.cashoutButton, (consecutiveCorrect < 5 || gameEnded) && styles.cashoutDisabled]}
                         onPress={handleCashout}
-                        disabled={consecutiveCorrect < 5}
+                        disabled={consecutiveCorrect < 5 || gameEnded}
                     >
-                        <Text style={[styles.cashoutText, consecutiveCorrect < 5 && styles.cashoutDisabledText]}>
+                        <Text style={[styles.cashoutText, (consecutiveCorrect < 5 || gameEnded) && styles.cashoutDisabledText]}>
                             Cashout
                         </Text>
                     </TouchableOpacity>
@@ -369,7 +390,7 @@ const MainGameScreen = ({navigation, route}: Props) => {
                                 key={`${option}-${originalIndex}`}
                                 style={getOptionStyle(option)}
                                 onPress={() => handleAnswerSelect(option)}
-                                disabled={selectedAnswer !== null || showTimeUpModal}
+                                disabled={selectedAnswer !== null || showTimeUpModal || gameEnded}
                             >
                                 <Text style={getOptionTextStyle(option)}>
                                     {String.fromCharCode(65 + originalIndex)}: {option}
@@ -420,6 +441,53 @@ const MainGameScreen = ({navigation, route}: Props) => {
                         <TouchableOpacity
                             style={styles.continueButton}
                             onPress={handleTimeUpContinue}
+                        >
+                            <Text style={styles.continueButtonText}>Continue</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Game End Modal */}
+            <Modal
+                visible={showGameEndModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.gameEndModal}>
+                        <View style={styles.gameEndIcon}>
+                            <Ionicons
+                                name={winnings > 0 ? "trophy-outline" : "close-circle-outline"}
+                                size={48}
+                                color={winnings > 0 ? "#4caf50" : "#f44336"}
+                            />
+                        </View>
+                        <Text style={styles.gameEndTitle}>
+                            {winnings > 0 ? "Congratulations! 🎉" : "Game Over"}
+                        </Text>
+                        <Text style={styles.gameEndMessage}>
+                            You answered {consecutiveCorrect} questions correctly.
+                        </Text>
+                        <View style={styles.winningsContainer}>
+                            <Text style={styles.winningsLabel}>Your Winnings:</Text>
+                            <Text style={[styles.winningsAmount, { color: winnings > 0 ? "#4caf50" : "#f44336" }]}>
+                                ₦{winnings}
+                            </Text>
+                            {winnings === 0 && (
+                                <Text style={styles.noWinningsText}>
+                                    You need at least 5 consecutive correct answers to win prizes.
+                                </Text>
+                            )}
+                            {winnings > 0 && consecutiveCorrect >= 10 && (
+                                <Text style={styles.bonusText}>
+                                    You earned the maximum stake amount! All accumulated winnings are forfeited as per game rules.
+                                </Text>
+                            )}
+                        </View>
+                        <TouchableOpacity
+                            style={styles.continueButton}
+                            onPress={handleGameEndContinue}
                         >
                             <Text style={styles.continueButtonText}>Continue</Text>
                         </TouchableOpacity>
@@ -588,9 +656,16 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     consecutiveText: {
+        fontSize: 14,
+        color: '#333',
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    gameRulesText: {
         fontSize: 12,
         color: '#666',
         textAlign: 'center',
+        fontStyle: 'italic',
     },
     lifelinesContainer: {
         flexDirection: 'row',
@@ -826,6 +901,79 @@ const styles = StyleSheet.create({
         color: '#0369a1',
         textAlign: 'center',
     },
+    gameEndModal: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 30,
+        width: width - 40,
+        maxWidth: 350,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 4},
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    gameEndIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#f0f9ff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    gameEndTitle: {
+        fontSize: 24,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    gameEndMessage: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 20,
+        lineHeight: 22,
+    },
+    winningsContainer: {
+        backgroundColor: '#f8fffe',
+        padding: 20,
+        borderRadius: 12,
+        width: '100%',
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#e0f2f1',
+        alignItems: 'center',
+    },
+    winningsLabel: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    winningsAmount: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    noWinningsText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        fontStyle: 'italic',
+        marginTop: 8,
+    },
+    bonusText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        fontStyle: 'italic',
+        marginTop: 8,
+        lineHeight: 18,
+    },
     continueButton: {
         backgroundColor: '#7c3aed',
         paddingHorizontal: 32,
@@ -961,6 +1109,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'center',
     },
-})
+});
 
 export default MainGameScreen;

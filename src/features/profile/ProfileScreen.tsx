@@ -17,7 +17,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { editUserProfile } from "@/services/authService";
-import {useAuthStore} from "@/stores/authStore"; // Add this import
+import {useAuthStore} from "@/stores/authStore";
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -56,8 +56,7 @@ const ProfileScreen = ({ navigation }: Props) => {
     const getUserAvatar = (userData = userDetails) => {
         if (!userData) return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACUCAMAAAAwLZJQAAAAMFBMVEXk5ueutLfp6+ymrbCqsbTIzM7d3+GyuLvM0NLU19na3d7R1Na4vcDh4+TBxsjX2tsjwEX5AAADuUlEQVR4nO2c2barIAxAJSKDDP7/316snY+1QGyi67If+7QXkAAxtOsajUaj0Wg0Go1Go9E4NcAtkEOYrHNuGsOBdZWNXvZyoZd+sOp4ttA5r6UUTyRbHd3RVGMSE39JvxlutQegBrlmeXM1gdtwAZz+rHlR9fYI8x/ipuXCwG2ZQv3LcN4GlXv6pyzPZKon1ul3WZaLqmI0tX2+qBATn2eJphB6ZPIcyzwTTKKZcfRAeg5NiKWeyZRjPy0I+Cfol2nQNZ5SU+coGMon/mLqiE1DUQZ9QtPupZBzElmHNp5U1Qq9QHs8qVyhM9ISetaF/BXKwJ/qB1SInm7uazalB9KQDSlgPFM4UXnWJ9EFrYg8weBGVFDFPXicJ90ZCisaiTwR29ICVTSNWFGqg0nhnW6Fs4hKovyEzU6iP4uoJLo5/T+iVFNfd1F+HlEi0dOkp9Mk/NNsoac5lKCPeVSfHmrLOXcckWincKJkV5EOcHcmussdeNR1eaCrQJylAHGekg6qSEYW8zOIXZS27Fif88my/RVVXRonS6ILtQU9wlLelcrAJ/98Uxn4kuMLc80nRp6WjfIBZWrYKN5IJVdjSel1lKuxIN3wi7Ip5QemN0qK5D3159pX8meft51orkbkNWjxrc8bKuO4z9NM8g6Yb02Emnd53gEVN9syYziG50ya/3VVKSPxue4LEKIXb7JSaj8caDSvQLAmavlARzMdrcP5TgijGxLGTSFwt4xuAc9wy6wxewU1WmfMcMEYZ6cxHMoXujCZ6LW+pSP5aHXXOg6W/5FDUlR28KLfSKPi8sghupHvlQPMknOYb25LN1vhoxlZ1oHz648ZPsumlTDQZn9QzvdV93rZezMSrQEAG3XWfH8a2GhIVK0um/E11Z8/H4FgNK4sfnf95WoFMKia+KtqCqxfLQBb3Cb+hZ/UTWDabzRvpKP//qIDNoTWVeO+8w95j4Gq2LWtDN3zsIH0e8U/dPuvzhfTvZ46qZ+szhfVXaYf3UGSY4r/gg+GwHMP01+G0YspsuiDbSEgMkX3CFOZOkJPzDrFN2LRmAZiz+rHTsimoSpq6tKoZxa1VHwxmxg0qxpjsP13lfSFk49uFqumMJvSR/yNws4DlkhaKGouLX8+vR8lh1O+FXqhYO5ZPQs6uGgPI3/wuUOK7bhFk5tLOUNpJnd7IrombYjmJn3GJLqQ2RYXuJdobhsX+uECXjQv56P6gvcRzbuTUF49P5AXTeyxJDL/ecX3/GSJvn7L5iFPtNFoVPAPAlkzJqeJNTcAAAAASUVORK5CYII='
         return userData.profilePicx ||
-            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACUCAMAAAAwLZJQAAAAMFBMVEXk5ueutLfp6+ymrbCqsbTIzM7d3+GyuLvM0NLU19na3d7R1Na4vcDh4+TBxsjX2tsjwEX5AAADuUlEQVR4nO2c2barIAxAJSKDDP7/316snY+1QGyi67If+7QXkAAxtOsajUaj0Wg0Go1Go9E4NcAtkEOYrHNuGsOBdZWNXvZyoZd+sOp4ttA5r6UUTyRbHd3RVGMSE39JvxlutQegBrlmeXM1gdtwAZz+rHlR9fYI8x/ipuXCwG2ZQv3LcN4GlXv6pyzPZKon1ul3WZaLqmI0tX2+qBATn2eJphB6ZPIcyzwTTKKZcfRAeg5NiKWeyZRjPy0I+Cfol2nQNZ5SU+coGMon/mLqiE1DUQZ9QtPupZBzElmHNp5U1Qq9QHs8qVyhM9ISetaF/BXKwJ/qB1SInm7uazalB9KQDSlgPFM4UXnWJ9EFrYg8weBGVFDFPXicJ90ZCisaiTwR29ICVTSNWFGqg0nhnW6Fs4hKovyEzU6iP4uoJLo5/T+iVFNfd1F+HlEi0dOkp9Mk/NNsoac5lKCPeVSfHmrLOXcckWincKJkV5EOcHcmussdeNR1eaCrQJylAHGekg6qSEYW8zOIXZS27Fif88my/RVVXRonS6ILtQU9wlLelcrAJ/98Uxn4kuMLc80nRp6WjfIBZWrYKN5IJVdjSel1lKuxIN3wi7Ip5QemN0qK5D3159pX8meft51orkbkNWjxrc8bKuO4z9NM8g6Yb02Emnd53gEVN9syYziG50ya/3VVKSPxue4LEKIXb7JSaj8caDSvQLAmavlARzMdrcP5TgijGxLGTSFwt4xuAc9wy6wxewU1WmfMcMEYZ6cxHMoXujCZ6LW+pSP5aHXXOg6W/5FDUlR28KLfSKPi8sghupHvlQPMknOYb25LN1vhoxlZ1oHz648ZPsumlTDQZn9QzvdV93rZezMSrQEAG3XWfH8a2GhIVK0um/E11Z8/H4FgNK4sfnf95WoFMKia+KtqCqxfLQBb3Cb+hZ/UTWDabzRvpKP//qIDNoTWVeO+8w95j4Gq2LWtDN3zsIH0e8U/dPuvzhfTvZ46qZ+szhfVXaYf3UGSY4r/gg+GwHMP01+G0YspsuiDbSEgMkX3CFOZOkJPzDrFN2LRmAZiz+rHTsimoSpq6tKoZxa1VHwxmxg0qxpjsP13lfSFk49uFqumMJvSR/yNws4DlkhaKGouLX8+vR8lh1O+FXqhYO5ZPQs6uGgPI3/wuUOK7bhFk5tLOUNpJnd7IrombYjmJn3GJLqQ2RYXuJdobhsX+uECXjQv56P6gvcRzbuTUF49P5AXTeyxJDL/ecX3/GSJvn7L5iFPtNFoVPAPAlkzJqeJNTcAAAAASUVORK5CYII='
-            // 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face';
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKgAAACUCAMAAAAwLZJQAAAAMFBMVEXk5ueutLfp6+ymrbCqsbTIzM7d3+GyuLvM0NLU19na3d7R1Na4vcDh4+TBxsjX2tsjwEX5AAADuUlEQVR4nO2c2barIAxAJSKDDP7/316snY+1QGyi67If+7QXkAAxtOsajUaj0Wg0Go1Go9E4NcAtkEOYrHNuGsOBdZWNXvZyoZd+sOp4ttA5r6UUTyRbHd3RVGMSE39JvxlutQegBrlmeXM1gdtwAZz+rHlR9fYI8x/ipuXCwG2ZQv3LcN4GlXv6pyzPZKon1ul3WZaLqmI0tX2+qBATn2eJphB6ZPIcyzwTTKKZcfRAeg5NiKWeyZRjPy0I+Cfol2nQNZ5SU+coGMon/mLqiE1DUQZ9QtPupZBzElmHNp5U1Qq9QHs8qVyhM9ISetaF/BXKwJ/qB1SInm7uazalB9KQDSlgPFM4UXnWJ9EFrYg8weBGVFDFPXicJ90ZCisaiTwR29ICVTSNWFGqg0nhnW6Fs4hKovyEzU6iP4uoJLo5/T+iVFNfd1F+HlEi0dOkp9Mk/NNsoac5lKCPeVSfHmrLOXcckWincKJkV5EOcHcmussdeNR1eaCrQJylAHGekg6qSEYW8zOIXZS27Fif88my/RVVXRonS6ILtQU9wlLelcrAJ/98Uxn4kuMLc80nRp6WjfIBZWrYKN5IJVdjSel1lKuxIN3wi7Ip5QemN0qK5D3159pX8meft51orkbkNWjxrc8bKuO4z9NM8g6Yb02Emnd53gEVN9syYziG50ya/3VVKSPxue4LEKIXb7JSaj8caDSvQLAmavlARzMdrcP5TgijGxLGTSFwt4xuAc9wy6wxewU1WmfMcMEYZ6cxHMoXujCZ6LW+pSP5aHXXOg6W/5FDUlR28KLfSKPi8sghupHvlQPMknOYb25LN1vhoxlZ1oHz648ZPsumlTDQZn9QzvdV93rZezMSrQEAG3XWfH8a2GhIVK0um/E11Z8/H4FgNK4sfnf95WoFMKia+KtqCqxfLQBb3Cb+hZ/UTWDabzRvpKP//qIDNoTWVeO+8w95j4Gq2LWtDN3zsIH0e8U/dPuvzhfTvZ46qZ+szhfVXaYf3UGSY4r/gg+GwHMP01+G0YspsuiDbSEgMkX3CFOZOkJPzDrFN2LRmAZiz+rHTsimoSpq6tKoZxa1VHwxmxg0qxpjsP13lfSFk49uFqumMJvSR/yNws4DlkhaKGouLX8+vR8lh1O+FXqhYO5ZPQs6uGgPI3/wuUOK7bhFk5tLOUNpJnd7IrombYjmJn3GJLqQ2RYXuJdobhsX+uECXjQv56P6gvcRzbuTUF49P5AXTeyxJDL/ecX3/GSJvn7L5iFPtNFoVPAPAlkzJqeJNTcAAAAASUVORK5CYII=';
     };
 
     // Function to get user's points or fallback
@@ -66,7 +65,42 @@ const ProfileScreen = ({ navigation }: Props) => {
         return userDetails.points || userDetails.balance || '0';
     };
 
-    // Function to handle image picker
+    // Helper function to create FormData
+    const createFormData = (data) => {
+        const formData = new FormData();
+
+        // Add text fields
+        if (data.bankName) {
+            formData.append('bankName', data.bankName);
+        }
+        if (data.accountNumber) {
+            formData.append('accountNumber', data.accountNumber);
+        }
+
+        // Add profile image if it's a new upload (not a URL or base64)
+        if (data.profilePic && data.profilePic.startsWith('file://')) {
+            // Extract filename from URI or create one
+            const filename = data.profilePic.split('/').pop() || 'profile.jpg';
+            const fileType = filename.split('.').pop() || 'jpg';
+
+            formData.append('profilePic', {
+                uri: data.profilePic,
+                type: `image/${fileType}`,
+                name: filename,
+            } as any);
+        } else if (data.profilePic && !data.profilePic.startsWith('data:') && !data.profilePic.startsWith('http')) {
+            // Handle other file URI formats
+            formData.append('profilePic', {
+                uri: data.profilePic,
+                type: 'image/jpeg',
+                name: 'profile.jpg',
+            } as any);
+        }
+
+        return formData;
+    };
+
+    // Modified function to handle image picker
     const pickImage = async () => {
         // Request permission
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -88,7 +122,7 @@ const ProfileScreen = ({ navigation }: Props) => {
             const newImageUri = result.assets[0].uri;
             setProfileImage(newImageUri);
 
-            // Call API to update profile image
+            // Call API to update profile image using FormData
             try {
                 const payload = {
                     bankName: bankName || '',
@@ -96,16 +130,26 @@ const ProfileScreen = ({ navigation }: Props) => {
                     profilePic: newImageUri
                 };
 
-                console.log(payload, "editPayload")
+                console.log('Updating profile with FormData...');
 
-                const response = await editUserProfile(payload);
+                // Create FormData
+                const formData = createFormData(payload);
+
+                // Log FormData contents for debugging
+                // console.log('FormData created with fields:');
+                // for (let [key, value] of formData._parts) {
+                //     console.log(key, typeof value === 'object' ? 'File object' : value);
+                // }
+
+                const response = await editUserProfile(formData);
 
                 if (response.success) {
                     // Update local storage with new image
                     const updatedUserDetails = {
                         ...userDetails,
                         profileImage: newImageUri,
-                        profilePic: newImageUri
+                        profilePic: newImageUri,
+                        profilePicx: newImageUri
                     };
                     await AsyncStorage.setItem('userDetails', JSON.stringify(updatedUserDetails));
                     setUserDetails(updatedUserDetails);
@@ -124,7 +168,7 @@ const ProfileScreen = ({ navigation }: Props) => {
         }
     };
 
-    // Function to save bank details
+    // Modified function to save bank details using FormData
     const saveBankDetails = async () => {
         if (!bankName.trim() || !accountNumber.trim()) {
             Alert.alert('Validation Error', 'Please fill in both bank name and account number');
@@ -137,8 +181,19 @@ const ProfileScreen = ({ navigation }: Props) => {
                 accountNumber: accountNumber.trim(),
                 profilePic: profileImage || getUserAvatar()
             };
-            console.log(payload, "editPayload")
-            const response = await editUserProfile(payload);
+
+            console.log('Saving bank details with FormData...');
+
+            // Create FormData
+            const formData = createFormData(payload);
+
+            // Log FormData contents for debugging
+            console.log('FormData created with fields:');
+            // for (let [key, value] of formData._parts) {
+            //     console.log(key, typeof value === 'object' ? 'File object' : value);
+            // }
+
+            const response = await editUserProfile(formData);
 
             if (response.success) {
                 // Update local storage with new bank details
@@ -212,12 +267,6 @@ const ProfileScreen = ({ navigation }: Props) => {
                     <Ionicons name="arrow-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Profile</Text>
-                {/*<View style={styles.headerRight}>*/}
-                {/*    <View style={styles.pointsContainer}>*/}
-                {/*        <Text style={styles.pointsIcon}>💎</Text>*/}
-                {/*        <Text style={styles.points}>{getUserPoints()}</Text>*/}
-                {/*    </View>*/}
-                {/*</View>*/}
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
@@ -415,7 +464,7 @@ const styles = StyleSheet.create({
         color: '#1F2937',
         flex: 1,
         textAlign: 'center',
-        marginRight: 40, // To center the title properly
+        marginRight: 40,
     },
     headerRight: {
         alignItems: 'flex-end',
