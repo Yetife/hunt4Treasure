@@ -63,11 +63,17 @@ const MainGameScreen = ({navigation, route}: Props) => {
     const totalQuestions = quizData?.length;
 
     // Calculate prize amounts (20% of stake, increasing by 20% each question)
-    const calculatePrizeAmount = (questionIndex) => {
-        return Math.round(stakeAmount * 0.2 * (questionIndex + 1));
+    const calculatePrizeAmount = (consecutiveCount) => {
+        // Prize is based on consecutive correct answers, not question index
+        // Only award meaningful prize if they have consecutive correct answers
+        if (consecutiveCount === 0) {
+            return Math.round(stakeAmount * 0.2); // Small base prize for first question
+        }
+        return Math.round(stakeAmount * 0.2 * consecutiveCount);
     };
 
-    const currentPrize = calculatePrizeAmount(currentQuestionIndex);
+    const currentPrize = calculatePrizeAmount(consecutiveCorrect + 1); // +1 for potential current answer
+
 
     // Calculate winnings based on game rules
     const calculateWinnings = (correctAnswers) => {
@@ -122,6 +128,9 @@ const MainGameScreen = ({navigation, route}: Props) => {
             // Player has lives remaining, show life lost modal
             setLivesRemaining(livesRemaining - 1);
 
+            // CRUCIAL: Reset consecutive correct count when wrong answer
+            setConsecutiveCorrect(0);
+
             if (!answerSelected) {
                 // Time ran out
                 setShowTimeUpModal(true);
@@ -136,6 +145,8 @@ const MainGameScreen = ({navigation, route}: Props) => {
             }
         } else {
             // Game over - either no lives left or after question 5
+            // Also reset consecutive count for game over
+            setConsecutiveCorrect(0);
             handleGameEnd(false);
         }
     };
@@ -151,6 +162,11 @@ const MainGameScreen = ({navigation, route}: Props) => {
         const finalCorrectAnswers = isCorrect ? consecutiveCorrect + 1 : consecutiveCorrect;
         const finalWinnings = calculateWinnings(finalCorrectAnswers);
         setWinnings(finalWinnings);
+
+        // Reset consecutive count when game ends
+        if (!isCorrect) {
+            setConsecutiveCorrect(0);
+        }
 
         // Show time up modal first if time ran out and no lives left
         if (timeLeft === 0 && !selectedAnswer && (currentQuestionIndex >= 4 || livesRemaining <= 1)) {
@@ -1072,7 +1088,7 @@ const styles = StyleSheet.create({
         padding: 24,
         width: '100%',
         maxWidth: 400,
-        maxHeight: '80%',
+        maxHeight: '92%',
     },
     gameInfoIcon: {
         alignItems: 'center',
@@ -1086,7 +1102,7 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     gameInfoContent: {
-        maxHeight: 300,
+        maxHeight: 500,
         marginBottom: 20,
     },
     gameInfoSection: {
