@@ -3,7 +3,9 @@ export type RootStackParamList = {
     Login: undefined;
     SignUp: undefined;
     Landing: undefined;
-    Categories: undefined;
+    Categories: {
+        balance: any
+    };
     Profile: undefined;
     Demo: {
         quizData: any;

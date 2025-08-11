@@ -30,6 +30,8 @@ const LandingScreen = ({ navigation }: Props) => {
     const [isProcessing, setIsProcessing] = useState(false)
     const [quiz, setQuiz] = useState(null);
     const [sessionId, setSessionId] = useState("");
+    const [image, setImage] = useState(null)
+    const [balance, setBalance] = useState(0)
 
     const handlePlayPress = (category) => {
         setSelectedCategory(category);
@@ -45,7 +47,7 @@ const LandingScreen = ({ navigation }: Props) => {
 
     const validateStakeAmount = () => {
         const amount = parseFloat(stakeAmount);
-        const balance = parseFloat(getUserPoints());
+        const userBalance = parseFloat(balance.toString());
 
         if (!stakeAmount || stakeAmount.trim() === '') {
             Alert.alert('Invalid Amount', 'Please enter a stake amount');
@@ -57,8 +59,8 @@ const LandingScreen = ({ navigation }: Props) => {
             return false;
         }
 
-        if (amount > balance) {
-            Alert.alert('Insufficient Balance', `You can't stake more than your current balance of ₦${balance}`);
+        if (amount > userBalance) {
+            Alert.alert('Insufficient Balance', `You can't stake more than your current balance of ₦${userBalance}`);
             return false;
         }
 
@@ -85,7 +87,7 @@ const LandingScreen = ({ navigation }: Props) => {
                 navigation.navigate('MainGame', {
                     quizData: response.data.questions,  // Use response data directly
                     stakeAmount: stakeAmount,
-                    initialBalance: getUserPoints(),
+                    initialBalance: balance,
                     playerName: getUserName(),
                     id: response.data.sessionId         // Use response data directly
                 });
@@ -120,8 +122,9 @@ const LandingScreen = ({ navigation }: Props) => {
         const fetchUserDetails = async () => {
             try {
                 const result = await getUserDetails();
-                console.log(result, "dat")
                 console.log(result.data, "dataaaaailsss")
+                setImage(result.data.profileImagePath)
+                setBalance(result.data.balance)
                 await AsyncStorage.setItem("userDetails", JSON.stringify(result.data));
             } catch (error) {
                 console.error('Error retrieving user details:', error);
@@ -173,7 +176,9 @@ const LandingScreen = ({ navigation }: Props) => {
     const handleSeeAllCategories = () => {
         // Navigate to categories screen
         if (navigation) {
-            navigation.navigate('Categories');
+            navigation.navigate('Categories', {
+                balance: balance.toString(),
+            });
         } else {
             // For demo purposes, show alert
             alert('Navigate to Categories screen');
@@ -193,6 +198,7 @@ const LandingScreen = ({ navigation }: Props) => {
     const handleTopUpSuccess = async (newBalance) => {
         try {
             // Update userDetails with new balance
+            setBalance(newBalance.toString())
             const updatedUserDetails = {
                 ...userDetails,
                 balance: newBalance.toString(),
@@ -224,7 +230,7 @@ const LandingScreen = ({ navigation }: Props) => {
                 <View style={styles.headerLeft}>
                     <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
                         <Image
-                            source={{ uri: getUserAvatar() }}
+                            source={{ uri: image || getUserAvatar() }}
                             style={styles.avatar}
                         />
                     </TouchableOpacity>
@@ -239,7 +245,7 @@ const LandingScreen = ({ navigation }: Props) => {
                         onPress={() => setShowTopUpModal(true)} // Open modal on press
                     >
                         <Text style={styles.pointsIcon}>💎</Text>
-                        <Text style={styles.points}>{parseFloat(getUserPoints()).toLocaleString()}</Text>
+                        <Text style={styles.points}>{balance}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -309,7 +315,7 @@ const LandingScreen = ({ navigation }: Props) => {
                 visible={showTopUpModal}
                 onClose={() => setShowTopUpModal(false)}
                 onSuccess={handleTopUpSuccess}
-                currentBalance={getUserPoints()}
+                currentBalance={balance}
             />
             <Modal
                 animationType="slide"
@@ -353,7 +359,7 @@ const LandingScreen = ({ navigation }: Props) => {
                             {/* Balance Display */}
                             <View style={styles.balanceContainer}>
                                 <Text style={styles.balanceLabel}>Your Balance</Text>
-                                <Text style={styles.balanceAmount}>₦{getUserPoints()}</Text>
+                                <Text style={styles.balanceAmount}>₦{balance}</Text>
                             </View>
 
                             {/* Stake Amount Input */}
@@ -371,7 +377,7 @@ const LandingScreen = ({ navigation }: Props) => {
                                     />
                                 </View>
                                 <Text style={styles.inputHint}>
-                                    Maximum: ₦{getUserPoints()}
+                                    Maximum: ₦{balance}
                                 </Text>
                             </View>
 
