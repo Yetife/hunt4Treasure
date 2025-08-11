@@ -16,9 +16,16 @@ export const registerUser = async (data: any) => {
 };
 
 export const editUserProfile = async (data: any) => {
-    const response = await api.post('Profile/UpdateUser', data);
+    console.log('Data being sent to editUserProfile:', data);
+    //const response = await api.post('Profile/UpdateUser', data);
+    const response = await api.post('Profile/UpdateUser', data, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
     return response.data;
 };
+
 export const topUpBalance = async (data: any) => {
     const response = await api.post(`Payment/TopUp?Amount=${data}`);
     return response.data;
@@ -35,23 +42,3 @@ export const getUserDetails = async () => {
     const response = await api.post('Profile/GetDetial');
     return response.data;
 };
-
-//
-// export const loginUser = async (email: string, password: string) => {
-//     if (email === 'demo@example.com' && password === 'password') {
-//         return {
-//             user: { id: 1, name: 'Demo User', email },
-//             token: 'mock-token-1234'
-//         };
-//     } else {
-//         throw new Error('Invalid credentials');
-//     }
-// };
-//
-// export const registerUser = async (data: any) => {
-//     return {
-//         user: { id: Date.now(), name: `${data.firstName} ${data.lastName}`, email: data.email },
-//         token: 'mock-token-1234'
-//     };
-// };
-
