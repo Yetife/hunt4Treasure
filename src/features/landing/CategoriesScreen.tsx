@@ -22,7 +22,8 @@ import {gameStakeAmount, topUpBalance} from "@/services/authService";
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Categories'>;
 
-export default function CategoriesScreen({ navigation }: Props){
+export default function CategoriesScreen({ navigation, route }: Props){
+    const balance = route.params?.balance || 0
     const [userDetails, setUserDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
@@ -75,7 +76,7 @@ export default function CategoriesScreen({ navigation }: Props){
 
     const validateStakeAmount = () => {
         const amount = parseFloat(stakeAmount);
-        const balance = parseFloat(getUserBalance());
+        const userBalance = parseFloat(balance.toString());
 
         if (!stakeAmount || stakeAmount.trim() === '') {
             Alert.alert('Invalid Amount', 'Please enter a stake amount');
@@ -87,8 +88,8 @@ export default function CategoriesScreen({ navigation }: Props){
             return false;
         }
 
-        if (amount > balance) {
-            Alert.alert('Insufficient Balance', `You can't stake more than your current balance of ₦${balance}`);
+        if (amount > userBalance) {
+            Alert.alert('Insufficient Balance', `You can't stake more than your current balance of ₦${userBalance}`);
             return false;
         }
 
@@ -115,7 +116,7 @@ export default function CategoriesScreen({ navigation }: Props){
                 navigation.navigate('MainGame', {
                     quizData: response.data.questions,  // Use response data directly
                     stakeAmount: stakeAmount,
-                    initialBalance: getUserBalance(),
+                    initialBalance: balance.toString(),
                     playerName: getUserName(),
                     id: response.data.sessionId         // Use response data directly
                 });
@@ -216,7 +217,7 @@ export default function CategoriesScreen({ navigation }: Props){
                             {/* Balance Display */}
                             <View style={styles.balanceContainer}>
                                 <Text style={styles.balanceLabel}>Your Balance</Text>
-                                <Text style={styles.balanceAmount}>₦{getUserBalance()}</Text>
+                                <Text style={styles.balanceAmount}>₦{balance}</Text>
                             </View>
 
                             {/* Stake Amount Input */}
@@ -234,7 +235,7 @@ export default function CategoriesScreen({ navigation }: Props){
                                     />
                                 </View>
                                 <Text style={styles.inputHint}>
-                                    Maximum: ₦{getUserBalance()}
+                                    Maximum: ₦{balance}
                                 </Text>
                             </View>
 

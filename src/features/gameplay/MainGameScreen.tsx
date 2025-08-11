@@ -29,7 +29,7 @@ const MainGameScreen = ({navigation, route}: Props) => {
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [currentBalance, setCurrentBalance] = useState(initialBalance - stakeAmount);
+    const [currentBalance, setCurrentBalance] = useState(0);
     const [timeLeft, setTimeLeft] = useState(30);
     const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
     const [showTimeUpModal, setShowTimeUpModal] = useState(false);
@@ -38,6 +38,13 @@ const MainGameScreen = ({navigation, route}: Props) => {
     const [gameEnded, setGameEnded] = useState(false);
     const [showGameEndModal, setShowGameEndModal] = useState(false);
     const [winnings, setWinnings] = useState(0);
+
+    // Lives system - players get 2 lives before question 5
+    const [livesRemaining, setLivesRemaining] = useState(2);
+    const [showLifeLostModal, setShowLifeLostModal] = useState(false);
+
+    // Game info modal
+    const [showGameInfoModal, setShowGameInfoModal] = useState(true);
 
     // Lifelines
     const [fiftyFiftyUsed, setFiftyFiftyUsed] = useState(false);
@@ -75,14 +82,14 @@ const MainGameScreen = ({navigation, route}: Props) => {
 
     // Timer countdown
     useEffect(() => {
-        if (timeLeft > 0 && !selectedAnswer && !showTimeUpModal && !gameEnded) {
+        if (timeLeft > 0 && !selectedAnswer && !showTimeUpModal && !gameEnded && !showGameInfoModal) {
             const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
             return () => clearTimeout(timer);
-        } else if (timeLeft === 0 && !selectedAnswer && !showTimeUpModal && !gameEnded) {
-            // Time's up - end game
-            handleGameEnd(false);
+        } else if (timeLeft === 0 && !selectedAnswer && !showTimeUpModal && !gameEnded && !showGameInfoModal) {
+            // Time's up - handle based on lives system
+            handleWrongAnswer(false);
         }
-    }, [timeLeft, selectedAnswer, showTimeUpModal, gameEnded]);
+    }, [timeLeft, selectedAnswer, showTimeUpModal, gameEnded, showGameInfoModal]);
 
     const handleAnswerSelect = (answer) => {
         if (selectedAnswer || gameEnded) return; // Prevent multiple selections
@@ -101,11 +108,42 @@ const MainGameScreen = ({navigation, route}: Props) => {
                 moveToNextQuestion();
             }, 2000);
         } else {
-            // Wrong answer - end game
+            // Wrong answer - handle based on lives system
             setTimeout(() => {
-                handleGameEnd(false);
+                handleWrongAnswer(true);
             }, 2000);
         }
+    };
+
+    const handleWrongAnswer = (answerSelected) => {
+        const isBeforeQuestion5 = currentQuestionIndex < 4; // Questions 0-3 are before question 5
+
+        if (isBeforeQuestion5 && livesRemaining > 1) {
+            // Player has lives remaining, show life lost modal
+            setLivesRemaining(livesRemaining - 1);
+
+            if (!answerSelected) {
+                // Time ran out
+                setShowTimeUpModal(true);
+                setShowCorrectAnswer(true);
+                setTimeout(() => {
+                    setShowTimeUpModal(false);
+                    setShowLifeLostModal(true);
+                }, 3000);
+            } else {
+                // Wrong answer selected
+                setShowLifeLostModal(true);
+            }
+        } else {
+            // Game over - either no lives left or after question 5
+            handleGameEnd(false);
+        }
+    };
+
+    const handleLifeLostContinue = () => {
+        setShowLifeLostModal(false);
+        // Move to next question
+        moveToNextQuestion();
     };
 
     const handleGameEnd = (isCorrect) => {
@@ -114,8 +152,8 @@ const MainGameScreen = ({navigation, route}: Props) => {
         const finalWinnings = calculateWinnings(finalCorrectAnswers);
         setWinnings(finalWinnings);
 
-        // Show time up modal first if time ran out
-        if (timeLeft === 0 && !selectedAnswer) {
+        // Show time up modal first if time ran out and no lives left
+        if (timeLeft === 0 && !selectedAnswer && (currentQuestionIndex >= 4 || livesRemaining <= 1)) {
             setShowTimeUpModal(true);
             setShowCorrectAnswer(true);
             setTimeout(() => {
@@ -146,7 +184,11 @@ const MainGameScreen = ({navigation, route}: Props) => {
 
     const handleTimeUpContinue = () => {
         setShowTimeUpModal(false);
-        // This will be handled by the game end logic
+        // This will be handled by the game end logic or life lost logic
+    };
+
+    const handleGameInfoOkay = () => {
+        setShowGameInfoModal(false);
     };
 
     const handleFiftyFifty = () => {
@@ -304,6 +346,31 @@ const MainGameScreen = ({navigation, route}: Props) => {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Lives Display (only show before question 5) */}
+                {currentQuestionIndex < 4 && (
+                    <View style={styles.livesContainer}>
+                        <Text style={styles.livesLabel}>Lives Remaining:</Text>
+                        <View style={styles.livesDisplay}>
+                            {[...Array(2)].map((_, index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.lifeHeart,
+                                        index < livesRemaining ? styles.lifeHeartActive : styles.lifeHeartInactive
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.lifeHeartText,
+                                        index < livesRemaining ? styles.lifeHeartTextActive : styles.lifeHeartTextInactive
+                                    ]}>
+                                        ❤️
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
                 {/* Prize Display */}
                 <View style={styles.prizeContainer}>
                     <Text style={styles.prizeLabel}>Prize for this question:</Text>
@@ -416,6 +483,98 @@ const MainGameScreen = ({navigation, route}: Props) => {
                     <Text style={styles.timerLabel}>seconds left</Text>
                 </View>
             </ScrollView>
+
+            {/* Game Info Modal */}
+            <Modal
+                visible={showGameInfoModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.gameInfoModal}>
+                        <View style={styles.gameInfoIcon}>
+                            <Ionicons name="information-circle-outline" size={48} color="#7c3aed" />
+                        </View>
+                        <Text style={styles.gameInfoTitle}>Game Information 📚</Text>
+
+                        <ScrollView style={styles.gameInfoContent} showsVerticalScrollIndicator={false}>
+                            <View style={styles.gameInfoSection}>
+                                <Text style={styles.gameInfoSectionTitle}>🎯 Game Rules</Text>
+                                <Text style={styles.gameInfoText}>
+                                    • Answer questions correctly to win prizes{'\n'}
+                                    • Need 5+ consecutive correct answers to win{'\n'}
+                                    • 5-9 correct: 50% of stake amount{'\n'}
+                                    • 10+ correct: 100% of stake amount
+                                </Text>
+                            </View>
+
+                            <View style={styles.gameInfoSection}>
+                                <Text style={styles.gameInfoSectionTitle}>❤️ Lives System</Text>
+                                <Text style={styles.gameInfoText}>
+                                    • You get 2 lives for questions 1-4{'\n'}
+                                    • After question 5, wrong answers end the game{'\n'}
+                                    • Lives don't carry over after question 4
+                                </Text>
+                            </View>
+
+                            <View style={styles.gameInfoSection}>
+                                <Text style={styles.gameInfoSectionTitle}>🆘 Lifelines</Text>
+                                <Text style={styles.gameInfoText}>
+                                    • 50/50: Removes 2 wrong answers{'\n'}
+                                    • Skip: Skip current question{'\n'}
+                                    • Cashout: Take 50% stake after 5 correct
+                                </Text>
+                            </View>
+
+                            <View style={styles.gameInfoSection}>
+                                <Text style={styles.gameInfoSectionTitle}>⏰ Timer</Text>
+                                <Text style={styles.gameInfoText}>
+                                    • 30 seconds per question{'\n'}
+                                    • Time up counts as wrong answer
+                                </Text>
+                            </View>
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.gameInfoOkayButton}
+                            onPress={handleGameInfoOkay}
+                        >
+                            <Text style={styles.gameInfoOkayText}>Got it! Let's Play 🎮</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Life Lost Modal */}
+            <Modal
+                visible={showLifeLostModal}
+                transparent={true}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.lifeLostModal}>
+                        <View style={styles.lifeLostIcon}>
+                            <Text style={styles.lifeLostEmoji}>💔</Text>
+                        </View>
+                        <Text style={styles.lifeLostTitle}>Life Lost!</Text>
+                        <Text style={styles.lifeLostMessage}>
+                            {timeLeft === 0 ? "Time ran out!" : "Wrong answer!"} You have {livesRemaining} {livesRemaining === 1 ? 'life' : 'lives'} remaining.
+                        </Text>
+                        <View style={styles.correctAnswerContainer}>
+                            <Text style={styles.correctAnswerLabel}>The correct answer was:</Text>
+                            <Text style={styles.correctAnswerText}>
+                                {currentQuestion?.correctAnswer}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.continueButton}
+                            onPress={handleLifeLostContinue}
+                        >
+                            <Text style={styles.continueButtonText}>Continue ❤️</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Time Up Modal */}
             <Modal
@@ -604,6 +763,11 @@ const styles = StyleSheet.create({
         padding: 8,
         borderRadius: 8,
         backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     headerTitle: {
         fontSize: 20,
@@ -620,6 +784,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 1},
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
     },
     diamondIcon: {
         marginRight: 6,
@@ -632,6 +801,51 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#2e7d32',
     },
+
+    // Lives system styles
+    livesContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    livesLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    livesDisplay: {
+        flexDirection: 'row',
+    },
+    lifeHeart: {
+        marginLeft: 8,
+        padding: 4,
+    },
+    lifeHeartActive: {
+        opacity: 1,
+    },
+    lifeHeartInactive: {
+        opacity: 0.3,
+    },
+    lifeHeartText: {
+        fontSize: 20,
+    },
+    lifeHeartTextActive: {
+        color: '#e91e63',
+    },
+    lifeHeartTextInactive: {
+        color: '#999',
+    },
+
+    // Prize and progress styles
     prizeContainer: {
         backgroundColor: '#fff',
         borderRadius: 12,
@@ -667,49 +881,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
     },
-    lifelinesContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginBottom: 20,
-        paddingHorizontal: 10,
-    },
-    lifelineButton: {
-        backgroundColor: '#2196f3',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        minWidth: 70,
-    },
-    lifelineDisabled: {
-        backgroundColor: '#ccc',
-    },
-    lifelineText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    lifelineDisabledText: {
-        color: '#999',
-    },
-    cashoutButton: {
-        backgroundColor: '#4caf50',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
-    cashoutDisabled: {
-        backgroundColor: '#ccc',
-    },
-    cashoutText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    cashoutDisabledText: {
-        color: '#999',
-    },
+
     progressContainer: {
         marginBottom: 20,
     },
@@ -730,6 +902,53 @@ const styles = StyleSheet.create({
         backgroundColor: '#7c3aed',
         borderRadius: 4,
     },
+
+    // Lifelines styles
+    lifelinesContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 15,
+    },
+    lifelineButton: {
+        flex: 1,
+        backgroundColor: '#7c3aed',
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginHorizontal: 4,
+        alignItems: 'center',
+    },
+    lifelineDisabled: {
+        backgroundColor: '#ccc',
+    },
+    lifelineText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 12,
+    },
+    lifelineDisabledText: {
+        color: '#999',
+    },
+    cashoutButton: {
+        flex: 1,
+        backgroundColor: '#4caf50',
+        paddingVertical: 12,
+        borderRadius: 8,
+        marginHorizontal: 4,
+        alignItems: 'center',
+    },
+    cashoutDisabled: {
+        backgroundColor: '#ccc',
+    },
+    cashoutText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 12,
+    },
+    cashoutDisabledText: {
+        color: '#999',
+    },
+
+    // Question styles
     questionCard: {
         backgroundColor: '#fff',
         borderRadius: 16,
@@ -836,40 +1055,112 @@ const styles = StyleSheet.create({
         color: '#666',
         fontWeight: '500',
     },
-    // Modal styles
+
+    // Modal overlay
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
     },
-    timeUpModal: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 30,
-        width: width - 40,
-        maxWidth: 350,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 4},
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 8,
+
+    // Game Info Modal styles
+    gameInfoModal: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+        maxHeight: '80%',
     },
-    timeUpIcon: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#ffebee',
-        justifyContent: 'center',
+    gameInfoIcon: {
         alignItems: 'center',
+        marginBottom: 16,
+    },
+    gameInfoTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 16,
+        color: '#333',
+    },
+    gameInfoContent: {
+        maxHeight: 300,
         marginBottom: 20,
     },
-    timeUpTitle: {
-        fontSize: 24,
+    gameInfoSection: {
+        marginBottom: 16,
+    },
+    gameInfoSectionTitle: {
+        fontSize: 16,
         fontWeight: '600',
-        color: '#333',
+        color: '#7c3aed',
+        marginBottom: 8,
+    },
+    gameInfoText: {
+        fontSize: 14,
+        color: '#666',
+        lineHeight: 20,
+    },
+    gameInfoOkayButton: {
+        backgroundColor: '#7c3aed',
+        paddingVertical: 14,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    gameInfoOkayText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 16,
+    },
+
+    // Life Lost Modal styles
+    lifeLostModal: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        maxWidth: 350,
+        alignItems: 'center',
+    },
+    lifeLostIcon: {
+        marginBottom: 16,
+    },
+    lifeLostEmoji: {
+        fontSize: 48,
+    },
+    lifeLostTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#f44336',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    lifeLostMessage: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 16,
+        lineHeight: 22,
+    },
+
+    // Time Up Modal styles
+    timeUpModal: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        maxWidth: 350,
+        alignItems: 'center',
+    },
+    timeUpIcon: {
+        marginBottom: 16,
+    },
+    timeUpTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#f44336',
         marginBottom: 12,
         textAlign: 'center',
     },
@@ -877,9 +1168,70 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666',
         textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 22,
+        marginBottom: 16,
     },
+
+    // Game End Modal styles
+    gameEndModal: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        maxWidth: 350,
+        alignItems: 'center',
+    },
+    gameEndIcon: {
+        marginBottom: 16,
+    },
+    gameEndTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 12,
+        textAlign: 'center',
+        color: '#333',
+    },
+    gameEndMessage: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+
+    // Winnings styles
+    winningsContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        backgroundColor: '#f9f9f9',
+        borderRadius: 12,
+        width: '100%',
+    },
+    winningsLabel: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 8,
+    },
+    winningsAmount: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    noWinningsText: {
+        fontSize: 12,
+        color: '#999',
+        textAlign: 'center',
+        lineHeight: 16,
+    },
+    bonusText: {
+        fontSize: 12,
+        color: '#4caf50',
+        textAlign: 'center',
+        lineHeight: 16,
+        marginTop: 4,
+    },
+
+    // Correct Answer Display styles
     correctAnswerContainer: {
         backgroundColor: '#f0f9ff',
         padding: 16,
@@ -901,92 +1253,24 @@ const styles = StyleSheet.create({
         color: '#0369a1',
         textAlign: 'center',
     },
-    gameEndModal: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 30,
-        width: width - 40,
-        maxWidth: 350,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 4},
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 8,
-    },
-    gameEndIcon: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#f0f9ff',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    gameEndTitle: {
-        fontSize: 24,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    gameEndMessage: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 22,
-    },
-    winningsContainer: {
-        backgroundColor: '#f8fffe',
-        padding: 20,
-        borderRadius: 12,
-        width: '100%',
-        marginBottom: 24,
-        borderWidth: 1,
-        borderColor: '#e0f2f1',
-        alignItems: 'center',
-    },
-    winningsLabel: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    winningsAmount: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 8,
-    },
-    noWinningsText: {
-        fontSize: 14,
-        color: '#666',
-        textAlign: 'center',
-        fontStyle: 'italic',
-        marginTop: 8,
-    },
-    bonusText: {
-        fontSize: 14,
-        color: '#666',
-        textAlign: 'center',
-        fontStyle: 'italic',
-        marginTop: 8,
-        lineHeight: 18,
-    },
+
+    // Continue Button styles
     continueButton: {
         backgroundColor: '#7c3aed',
+        paddingVertical: 14,
         paddingHorizontal: 32,
-        paddingVertical: 12,
-        borderRadius: 25,
-        width: '100%',
+        borderRadius: 8,
+        alignItems: 'center',
+        minWidth: 120,
     },
     continueButtonText: {
-        color: 'white',
-        fontSize: 16,
+        color: '#fff',
         fontWeight: '600',
-        textAlign: 'center',
+        fontSize: 16,
     },
+
+    // Balance Modal styles
+
     balanceModal: {
         backgroundColor: 'white',
         borderRadius: 20,
@@ -1022,44 +1306,40 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     closeButton: {
-        backgroundColor: '#ccc',
-        paddingHorizontal: 40,
-        paddingVertical: 15,
-        borderRadius: 25,
+        backgroundColor: '#e0e0e0',
+        paddingVertical: 12,
+        paddingHorizontal: 32,
+        borderRadius: 8,
         width: '100%',
-        marginTop: 10,
+        alignItems: 'center',
     },
     closeButtonText: {
-        color: '#666',
-        fontSize: 16,
+        color: '#333',
         fontWeight: '600',
-        textAlign: 'center',
+        fontSize: 16,
     },
+
+    // Withdraw Modal styles
     withdrawModal: {
-        backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 30,
-        width: width - 40,
-        maxWidth: 400,
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 4},
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 8,
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        maxWidth: 350,
     },
     withdrawTitle: {
-        fontSize: 24,
-        fontWeight: '600',
+        fontSize: 20,
+        fontWeight: 'bold',
         color: '#333',
-        marginBottom: 30,
+        marginBottom: 20,
         textAlign: 'center',
     },
     formGroup: {
-        marginBottom: 20,
+        marginBottom: 16,
     },
     formLabel: {
-        fontSize: 16,
-        fontWeight: '500',
+        fontSize: 14,
+        fontWeight: '600',
         color: '#333',
         marginBottom: 8,
     },
@@ -1069,45 +1349,43 @@ const styles = StyleSheet.create({
         backgroundColor: '#f5f5f5',
         padding: 12,
         borderRadius: 8,
-        textAlign: 'center',
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
     },
     textInput: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 12,
         fontSize: 16,
+        color: '#333',
         backgroundColor: '#fff',
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
     },
     withdrawButtonContainer: {
-        marginTop: 20,
+        marginTop: 8,
     },
     submitWithdrawButton: {
         backgroundColor: '#4caf50',
-        paddingHorizontal: 40,
-        paddingVertical: 15,
-        borderRadius: 25,
-        width: '100%',
-        marginBottom: 15,
+        paddingVertical: 14,
+        borderRadius: 8,
+        marginBottom: 12,
+        alignItems: 'center',
     },
     submitWithdrawText: {
-        color: 'white',
-        fontSize: 16,
+        color: '#fff',
         fontWeight: '600',
-        textAlign: 'center',
+        fontSize: 16,
     },
     cancelButton: {
-        backgroundColor: '#f44336',
-        paddingHorizontal: 40,
-        paddingVertical: 15,
-        borderRadius: 25,
-        width: '100%',
+        backgroundColor: '#e0e0e0',
+        paddingVertical: 14,
+        borderRadius: 8,
+        alignItems: 'center',
     },
     cancelButtonText: {
-        color: 'white',
-        fontSize: 16,
+        color: '#333',
         fontWeight: '600',
-        textAlign: 'center',
+        fontSize: 16,
     },
 });
 

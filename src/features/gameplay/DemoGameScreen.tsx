@@ -173,12 +173,12 @@ const DemoGameScreen = ({navigation, route}: Props) => {
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Quiz</Text>
-                <View style={styles.scoreContainer}>
-                    <View style={styles.diamondIcon}>
-                        <Text style={styles.diamondText}>💎</Text>
-                    </View>
-                    <Text style={styles.scoreText}>₦{score}</Text>
-                </View>
+                {/*<View style={styles.scoreContainer}>*/}
+                {/*    <View style={styles.diamondIcon}>*/}
+                {/*        <Text style={styles.diamondText}>💎</Text>*/}
+                {/*    </View>*/}
+                {/*    <Text style={styles.scoreText}>₦{score}</Text>*/}
+                {/*</View>*/}
             </View>
 
             {/* Progress */}
