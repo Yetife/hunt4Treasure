@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import {NativeStackScreenProps} from "@react-navigation/native-stack";
 import {RootStackParamList} from "@/navigation/types";
+import {registerUser, userCashOut} from "@/services/authService";
 
 const { width } = Dimensions.get('window');
 
@@ -62,6 +63,124 @@ const MainGameScreen = ({navigation, route}: Props) => {
     const currentQuestion = quizData?.[currentQuestionIndex];
     const totalQuestions = quizData?.length;
 
+    const calculateAccumulatedWinnings = (consecutiveCount) => {
+        if (consecutiveCount < 5) {
+            return 0; // No winnings until 5 consecutive
+        } else if (consecutiveCount === 5) {
+            return Math.round(stakeAmount * 0.5); // 50% of stake for 5 correct
+        } else if (consecutiveCount > 6 && consecutiveCount < 10) {
+            // Accumulated winnings: 50% base + additional 20% per question beyond 5
+            // const baseAmount = Math.round(stakeAmount * 0.5);
+            // const additionalAmount = Math.round(stakeAmount * 0.2 * (consecutiveCount - 5));
+            // return baseAmount + additionalAmount;
+            return currentBalance
+        } else {
+            // 10+ consecutive: accumulated winnings continue to grow
+            const baseAmount = Math.round(stakeAmount * 0.5); // 50% for first 5
+            const midTierAmount = Math.round(stakeAmount * 0.2 * 4); // 80% for questions 6-9
+            const highTierAmount = Math.round(stakeAmount * 0.3 * (consecutiveCount - 9)); // 30% per question after 10
+            return baseAmount + midTierAmount + highTierAmount;
+        }
+    };
+
+// Calculate what player gets if they fail (different from cashout)
+    const calculateFailureWinnings = (consecutiveCount) => {
+        if (consecutiveCount < 5) {
+            return 0; // No prize if less than 5 consecutive correct
+        } else if (consecutiveCount >= 5 && consecutiveCount < 10) {
+            return Math.round(stakeAmount * 0.5); // 50% of stake for 5-9 correct
+        } else {
+            // 10+ correct but failed: only get 100% of stake (lose accumulated winnings)
+            return stakeAmount; // 100% of stake for 10+ correct (penalty for not cashing out)
+        }
+    };
+
+// Get current cashout amount (what they can take right now)
+    const getCurrentCashoutAmount = (consecutiveCount) => {
+        if (consecutiveCount < 5) {
+            return 0; // Cannot cashout
+        } else if (consecutiveCount === 5) {
+            return Math.round(stakeAmount * 0.5); // 50% of stake
+        } else {
+            return calculateAccumulatedWinnings(consecutiveCount); // Full accumulated amount
+        }
+    };
+
+// Updated handleCashout function
+    const handleCashout = async () => {
+        if (consecutiveCorrect < 5 || gameEnded) {
+            Alert.alert("Cannot Cashout", "You need to answer at least 5 consecutive questions correctly to cashout.");
+            return;
+        }
+
+        const cashoutAmount = getCurrentCashoutAmount(consecutiveCorrect);
+        let cashoutMessage = '';
+
+        if (consecutiveCorrect === 5) {
+            cashoutMessage = `You will receive 50% of your stake amount: ₦${cashoutAmount}`;
+        } else if (consecutiveCorrect < 10) {
+            cashoutMessage = `You will receive your accumulated winnings: ₦${cashoutAmount}\n(Base 50% + bonuses for ${consecutiveCorrect - 5} extra correct answers)`;
+        } else {
+            cashoutMessage = `You will receive your accumulated winnings: ₦${cashoutAmount}\nWarning: If you continue and fail, you'll only get ₦${stakeAmount} (100% stake)`;
+        }
+
+        const payload = {
+            sessionId: id,
+            fiftyfifty: fiftyFiftyUsed,
+            skipped: skipUsed,
+            numberOfAnsweredQuestions: consecutiveCorrect,
+            cashoutAmount: cashoutAmount
+        }
+
+        Alert.alert(
+            'Cashout Confirmation',
+            cashoutMessage,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Cashout',
+                    onPress: () => {
+                        setCurrentBalance(currentBalance + cashoutAmount);
+                        setGameEnded(true);
+                        Alert.alert('Success!', `₦${cashoutAmount} has been added to your balance!`, [
+                            { text: 'OK', onPress: async () => {
+                                    try{
+                                        const result = await userCashOut(payload);
+                                        if(result.status === true){
+                                            navigation.navigate('Landing')
+                                        }
+                                    }catch(err){
+                                        console.error(err);
+                                        alert('Unable to cashout. Try again.');
+                                    }
+                                } }
+                        ]);
+                    }
+                }
+            ]
+        );
+
+    };
+
+    const calculateWinnings = (correctAnswers) => {
+        return calculateFailureWinnings(correctAnswers);
+    };
+
+// Update the prize display text to show accumulated winnings
+    const getPrizeDisplayText = () => {
+        if (consecutiveCorrect < 5) {
+            return "Need 5 consecutive correct answers to win prizes";
+        } else if (consecutiveCorrect === 5) {
+            return "✅ Eligible for 50% stake cashout";
+        } else if (consecutiveCorrect < 10) {
+            const accumulatedAmount = calculateAccumulatedWinnings(consecutiveCorrect);
+            return `💰 Accumulated winnings: ₦${accumulatedAmount} (Can cashout anytime)`;
+        } else {
+            const accumulatedAmount = calculateAccumulatedWinnings(consecutiveCorrect);
+            return `🎯 High risk zone! Accumulated: ₦${accumulatedAmount}\n⚠️ Failure = only ₦${stakeAmount} (100% stake)`;
+        }
+    };
+
     // Calculate prize amounts (20% of stake, increasing by 20% each question)
     const calculatePrizeAmount = (consecutiveCount) => {
         // Prize is based on consecutive correct answers, not question index
@@ -76,15 +195,15 @@ const MainGameScreen = ({navigation, route}: Props) => {
 
 
     // Calculate winnings based on game rules
-    const calculateWinnings = (correctAnswers) => {
-        if (correctAnswers < 5) {
-            return 0; // No prize if less than 5 consecutive correct
-        } else if (correctAnswers >= 5 && correctAnswers < 10) {
-            return Math.round(stakeAmount * 0.5); // 50% of stake for 5-9 correct
-        } else {
-            return stakeAmount; // 100% of stake for 10+ correct (loses accumulated winnings)
-        }
-    };
+    // const calculateWinnings = (correctAnswers) => {
+    //     if (correctAnswers < 5) {
+    //         return 0; // No prize if less than 5 consecutive correct
+    //     } else if (correctAnswers >= 5 && correctAnswers < 10) {
+    //         return Math.round(stakeAmount * 0.5); // 50% of stake for 5-9 correct
+    //     } else {
+    //         return stakeAmount; // 100% of stake for 10+ correct (loses accumulated winnings)
+    //     }
+    // };
 
     // Timer countdown
     useEffect(() => {
@@ -229,32 +348,32 @@ const MainGameScreen = ({navigation, route}: Props) => {
         moveToNextQuestion();
     };
 
-    const handleCashout = () => {
-        if (consecutiveCorrect < 5 || gameEnded) {
-            Alert.alert("Cannot Cashout", "You need to answer at least 5 consecutive questions correctly to cashout.");
-            return;
-        }
-
-        const cashoutAmount = Math.round(stakeAmount * 0.5);
-
-        Alert.alert(
-            'Cashout Confirmation',
-            `You will receive 50% of your stake amount: ₦${cashoutAmount}`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Cashout',
-                    onPress: () => {
-                        setCurrentBalance(currentBalance + cashoutAmount);
-                        setGameEnded(true);
-                        Alert.alert('Success!', `₦${cashoutAmount} has been added to your balance!`, [
-                            { text: 'OK', onPress: () => navigation.navigate('MainGame') }
-                        ]);
-                    }
-                }
-            ]
-        );
-    };
+    // const handleCashout = () => {
+    //     if (consecutiveCorrect < 5 || gameEnded) {
+    //         Alert.alert("Cannot Cashout", "You need to answer at least 5 consecutive questions correctly to cashout.");
+    //         return;
+    //     }
+    //
+    //     const cashoutAmount = Math.round(stakeAmount * 0.5);
+    //
+    //     Alert.alert(
+    //         'Cashout Confirmation',
+    //         `You will receive 50% of your stake amount: ₦${cashoutAmount}`,
+    //         [
+    //             { text: 'Cancel', style: 'cancel' },
+    //             {
+    //                 text: 'Cashout',
+    //                 onPress: () => {
+    //                     setCurrentBalance(currentBalance + cashoutAmount);
+    //                     setGameEnded(true);
+    //                     Alert.alert('Success!', `₦${cashoutAmount} has been added to your balance!`, [
+    //                         { text: 'OK', onPress: () => navigation.navigate('Landing') }
+    //                     ]);
+    //                 }
+    //             }
+    //         ]
+    //     );
+    // };
 
     const handleTopUp = () => {
         setShowBalanceModal(false);
@@ -388,20 +507,58 @@ const MainGameScreen = ({navigation, route}: Props) => {
                 )}
 
                 {/* Prize Display */}
+                {/*<View style={styles.prizeContainer}>*/}
+                {/*    <Text style={styles.prizeLabel}>Prize for this question:</Text>*/}
+                {/*    <Text style={styles.prizeAmount}>₦{currentPrize}</Text>*/}
+                {/*    <Text style={styles.consecutiveText}>*/}
+                {/*        Consecutive Correct: {consecutiveCorrect}*/}
+                {/*    </Text>*/}
+                {/*    <Text style={styles.gameRulesText}>*/}
+                {/*        {consecutiveCorrect < 5*/}
+                {/*            ? "Need 5 consecutive correct answers to win prizes"*/}
+                {/*            : consecutiveCorrect < 10*/}
+                {/*                ? "✅ Eligible for 50% stake if you fail now"*/}
+                {/*                : "🎯 Eligible for 100% stake if you fail now"*/}
+                {/*        }*/}
+                {/*    </Text>*/}
+                {/*</View>*/}
+                {/* Prize Display */}
                 <View style={styles.prizeContainer}>
                     <Text style={styles.prizeLabel}>Prize for this question:</Text>
                     <Text style={styles.prizeAmount}>₦{currentPrize}</Text>
                     <Text style={styles.consecutiveText}>
                         Consecutive Correct: {consecutiveCorrect}
                     </Text>
+
+                    {/* Current Status */}
                     <Text style={styles.gameRulesText}>
-                        {consecutiveCorrect < 5
-                            ? "Need 5 consecutive correct answers to win prizes"
-                            : consecutiveCorrect < 10
-                                ? "✅ Eligible for 50% stake if you fail now"
-                                : "🎯 Eligible for 100% stake if you fail now"
-                        }
+                        {getPrizeDisplayText()}
                     </Text>
+
+                    {/* Show accumulated winnings if applicable */}
+                    {consecutiveCorrect >= 5 && (
+                        <View style={styles.accumulatedContainer}>
+                            <Text style={styles.accumulatedLabel}>
+                                {consecutiveCorrect === 5 ? "Cashout Available:" : "Accumulated Winnings:"}
+                            </Text>
+                            <Text style={styles.accumulatedAmount}>
+                                ₦{getCurrentCashoutAmount(consecutiveCorrect)}
+                            </Text>
+                        </View>
+                    )}
+
+                    {/* Risk warning for 10+ streak */}
+                    {consecutiveCorrect >= 10 && (
+                        <Text style={styles.riskWarningText}>
+                            ⚠️ RISK: Fail now = lose accumulated winnings!
+                        </Text>
+                    )}
+
+                    {consecutiveCorrect === 0 && currentQuestionIndex > 0 && (
+                        <Text style={styles.resetWarningText}>
+                            ⚠️ Prize resets after wrong answers
+                        </Text>
+                    )}
                 </View>
 
                 {/* Progress */}
@@ -420,6 +577,39 @@ const MainGameScreen = ({navigation, route}: Props) => {
                 </View>
 
                 {/* Lifelines */}
+                {/*<View style={styles.lifelinesContainer}>*/}
+                {/*    <TouchableOpacity*/}
+                {/*        style={[styles.lifelineButton, (fiftyFiftyUsed || gameEnded) && styles.lifelineDisabled]}*/}
+                {/*        onPress={handleFiftyFifty}*/}
+                {/*        disabled={fiftyFiftyUsed || selectedAnswer !== null || gameEnded}*/}
+                {/*    >*/}
+                {/*        <Text style={[styles.lifelineText, (fiftyFiftyUsed || gameEnded) && styles.lifelineDisabledText]}>*/}
+                {/*            50/50 {fiftyFiftyUsed && '✗'}*/}
+                {/*        </Text>*/}
+                {/*    </TouchableOpacity>*/}
+
+                {/*    <TouchableOpacity*/}
+                {/*        style={[styles.lifelineButton, (skipUsed || gameEnded) && styles.lifelineDisabled]}*/}
+                {/*        onPress={handleSkip}*/}
+                {/*        disabled={skipUsed || selectedAnswer !== null || gameEnded}*/}
+                {/*    >*/}
+                {/*        <Text style={[styles.lifelineText, (skipUsed || gameEnded) && styles.lifelineDisabledText]}>*/}
+                {/*            Skip {skipUsed && '✗'}*/}
+                {/*        </Text>*/}
+                {/*    </TouchableOpacity>*/}
+
+                {/*    <TouchableOpacity*/}
+                {/*        style={[styles.cashoutButton, (consecutiveCorrect < 5 || gameEnded) && styles.cashoutDisabled]}*/}
+                {/*        onPress={handleCashout}*/}
+                {/*        disabled={consecutiveCorrect < 5 || gameEnded}*/}
+                {/*    >*/}
+                {/*        <Text style={[styles.cashoutText, (consecutiveCorrect < 5 || gameEnded) && styles.cashoutDisabledText]}>*/}
+                {/*            Cashout*/}
+                {/*        </Text>*/}
+                {/*    </TouchableOpacity>*/}
+                {/*</View>*/}
+
+                {/* Updated Lifelines section with better cashout button text */}
                 <View style={styles.lifelinesContainer}>
                     <TouchableOpacity
                         style={[styles.lifelineButton, (fiftyFiftyUsed || gameEnded) && styles.lifelineDisabled]}
@@ -447,7 +637,10 @@ const MainGameScreen = ({navigation, route}: Props) => {
                         disabled={consecutiveCorrect < 5 || gameEnded}
                     >
                         <Text style={[styles.cashoutText, (consecutiveCorrect < 5 || gameEnded) && styles.cashoutDisabledText]}>
-                            Cashout
+                            {consecutiveCorrect < 5
+                                ? "Cashout"
+                                : `Cashout ₦${getCurrentCashoutAmount(consecutiveCorrect)}`
+                            }
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -624,6 +817,53 @@ const MainGameScreen = ({navigation, route}: Props) => {
             </Modal>
 
             {/* Game End Modal */}
+            {/*<Modal*/}
+            {/*    visible={showGameEndModal}*/}
+            {/*    transparent={true}*/}
+            {/*    animationType="fade"*/}
+            {/*>*/}
+            {/*    <View style={styles.modalOverlay}>*/}
+            {/*        <View style={styles.gameEndModal}>*/}
+            {/*            <View style={styles.gameEndIcon}>*/}
+            {/*                <Ionicons*/}
+            {/*                    name={winnings > 0 ? "trophy-outline" : "close-circle-outline"}*/}
+            {/*                    size={48}*/}
+            {/*                    color={winnings > 0 ? "#4caf50" : "#f44336"}*/}
+            {/*                />*/}
+            {/*            </View>*/}
+            {/*            <Text style={styles.gameEndTitle}>*/}
+            {/*                {winnings > 0 ? "Congratulations! 🎉" : "Game Over"}*/}
+            {/*            </Text>*/}
+            {/*            <Text style={styles.gameEndMessage}>*/}
+            {/*                You answered {consecutiveCorrect} questions correctly.*/}
+            {/*            </Text>*/}
+            {/*            <View style={styles.winningsContainer}>*/}
+            {/*                <Text style={styles.winningsLabel}>Your Winnings:</Text>*/}
+            {/*                <Text style={[styles.winningsAmount, { color: winnings > 0 ? "#4caf50" : "#f44336" }]}>*/}
+            {/*                    ₦{winnings}*/}
+            {/*                </Text>*/}
+            {/*                {winnings === 0 && (*/}
+            {/*                    <Text style={styles.noWinningsText}>*/}
+            {/*                        You need at least 5 consecutive correct answers to win prizes.*/}
+            {/*                    </Text>*/}
+            {/*                )}*/}
+            {/*                {winnings > 0 && consecutiveCorrect >= 10 && (*/}
+            {/*                    <Text style={styles.bonusText}>*/}
+            {/*                        You earned the maximum stake amount! All accumulated winnings are forfeited as per game rules.*/}
+            {/*                    </Text>*/}
+            {/*                )}*/}
+            {/*            </View>*/}
+            {/*            <TouchableOpacity*/}
+            {/*                style={styles.continueButton}*/}
+            {/*                onPress={handleGameEndContinue}*/}
+            {/*            >*/}
+            {/*                <Text style={styles.continueButtonText}>Continue</Text>*/}
+            {/*            </TouchableOpacity>*/}
+            {/*        </View>*/}
+            {/*    </View>*/}
+            {/*</Modal>*/}
+
+            {/* Game End Modal */}
             <Modal
                 visible={showGameEndModal}
                 transparent={true}
@@ -642,7 +882,7 @@ const MainGameScreen = ({navigation, route}: Props) => {
                             {winnings > 0 ? "Congratulations! 🎉" : "Game Over"}
                         </Text>
                         <Text style={styles.gameEndMessage}>
-                            You answered {consecutiveCorrect} questions correctly.
+                            You answered {consecutiveCorrect} questions correctly in a row.
                         </Text>
                         <View style={styles.winningsContainer}>
                             <Text style={styles.winningsLabel}>Your Winnings:</Text>
@@ -654,9 +894,15 @@ const MainGameScreen = ({navigation, route}: Props) => {
                                     You need at least 5 consecutive correct answers to win prizes.
                                 </Text>
                             )}
-                            {winnings > 0 && consecutiveCorrect >= 10 && (
+                            {winnings > 0 && consecutiveCorrect >= 5 && consecutiveCorrect < 10 && (
                                 <Text style={styles.bonusText}>
-                                    You earned the maximum stake amount! All accumulated winnings are forfeited as per game rules.
+                                    You earned 50% of your stake amount!
+                                </Text>
+                            )}
+                            {winnings > 0 && consecutiveCorrect >= 10 && (
+                                <Text style={styles.penaltyText}>
+                                    You reached 10+ consecutive but didn't cash out your accumulated winnings.
+                                    You receive 100% of stake amount as consolation.
                                 </Text>
                             )}
                         </View>
@@ -1402,6 +1648,58 @@ const styles = StyleSheet.create({
         color: '#333',
         fontWeight: '600',
         fontSize: 16,
+    },
+    accumulatedContainer: {
+        backgroundColor: '#e8f5e8',
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#4caf50',
+    },
+    accumulatedLabel: {
+        fontSize: 12,
+        color: '#2e7d32',
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    accumulatedAmount: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1b5e20',
+    },
+    riskWarningText: {
+        fontSize: 11,
+        color: '#f44336',
+        textAlign: 'center',
+        fontWeight: 'bold',
+        marginTop: 6,
+        backgroundColor: '#ffebee',
+        padding: 6,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#f44336',
+    },
+    resetWarningText: {
+        fontSize: 11,
+        color: '#ff9800',
+        textAlign: 'center',
+        fontWeight: '500',
+        marginTop: 4,
+        fontStyle: 'italic',
+    },
+    penaltyText: {
+        fontSize: 12,
+        color: '#ff9800',
+        textAlign: 'center',
+        lineHeight: 16,
+        marginTop: 4,
+        backgroundColor: '#fff3e0',
+        padding: 8,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: '#ff9800',
     },
 });
 

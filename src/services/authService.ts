@@ -30,6 +30,12 @@ export const topUpBalance = async (data: any) => {
     const response = await api.post(`Payment/TopUp?Amount=${data}`);
     return response.data;
 };
+
+export const userCashOut = async (data: any) => {
+    const response = await api.post('Payment/CashOut', data);
+    return response.data;
+};
+
 export const gameStakeAmount = async (amount: any, id: string) => {
     const response = await api.post(`Question/GetQuestions?amountStaked=${amount}&category=${id}`);
     return response.data;
