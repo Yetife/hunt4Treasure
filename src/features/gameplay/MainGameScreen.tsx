@@ -519,8 +519,8 @@ const MainGameScreen = ({navigation, route}: Props) => {
                                 <Text style={styles.gameInfoText}>
                                     • Answer questions correctly to win prizes{'\n'}
                                     • Need 5+ consecutive correct answers to win{'\n'}
-                                    • 5-9 correct: 50% of stake amount{'\n'}
-                                    • 10+ correct: 100% of stake amount
+                                    • 1-5 correct questions: gives 50% of stake amount as lifeline{'\n'}
+                                    • 10+ correct questions: 100% of stake amount as lifeline
                                 </Text>
                             </View>
 
